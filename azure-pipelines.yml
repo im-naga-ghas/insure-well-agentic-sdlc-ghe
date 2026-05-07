@@ -9,6 +9,8 @@ pr:
   branches:
     include:
       - main
+      - develop
+      - ghas-1
 
 stages:
   - stage: Build
