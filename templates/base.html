@@ -30,6 +30,14 @@
           </a>
         </li>
       </ul>
+      <div class="navbar-actions">
+        {% if g.current_user %}
+        <span class="nav-user">Hi, {{ g.current_user['username'] }}</span>
+        <form method="post" action="{{ url_for('logout') }}">
+          <button type="submit" class="btn btn-ghost nav-logout">Logout</button>
+        </form>
+        {% endif %}
+      </div>
     </div>
   </nav>
 

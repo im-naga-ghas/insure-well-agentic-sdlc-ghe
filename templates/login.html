@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>InsureWell – Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <main class="auth-main">
+    <div class="auth-card">
+      <h1 class="auth-title">InsureWell Login</h1>
+      <p class="auth-subtitle">Sign in to view your policy and claims.</p>
+      {% if error %}
+      <div class="alert alert-error">{{ error }}</div>
+      {% endif %}
+      <form method="post" class="claim-form">
+        <div class="form-group">
+          <label class="form-label" for="username">Username</label>
+          <input id="username" name="username" class="form-input" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input id="password" type="password" name="password" class="form-input" required />
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Login</button>
+        </div>
+      </form>
+    </div>
+  </main>
+</body>
+</html>
