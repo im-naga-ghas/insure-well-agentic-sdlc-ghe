@@ -1,0 +1,133 @@
+# Static Code Analysis — PR status check
+#
+# Runs fast Python static analysis on every pull request so issues are caught
+# before merge. This workflow is intended to be configured as a *required*
+# status check on protected branches (Settings → Branches → Branch protection).
+#
+# Tools:
+#   - Ruff   : lint + style (fast, replaces flake8/isort/pyupgrade)
+#   - Black  : code formatting check
+#   - Bandit : Python security linter (SAST for common issues)
+#   - mypy   : optional static type checking (non-blocking)
+#
+# CodeQL (deeper SAST) is handled separately in codeql.yml.
+
+name: Static Analysis
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+  push:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  security-events: write
+
+concurrency:
+  group: static-analysis-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (Ruff + Black)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install lint tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff==0.6.9 black==24.10.0
+
+      - name: Ruff (lint)
+        run: ruff check . --output-format=github
+
+      - name: Black (format check)
+        run: black --check --diff .
+
+  security:
+    name: Security (Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Bandit
+        run: |
+          python -m pip install --upgrade pip
+          pip install "bandit[sarif]==1.7.10"
+
+      - name: Run Bandit
+        # Fail the build on any Medium+ severity finding.
+        # Excludes test code and virtual envs.
+        run: |
+          bandit -r . \
+            --exclude ./tests,./.venv,./venv,./uploads,./data \
+            --severity-level medium \
+            --confidence-level medium \
+            -f sarif -o bandit.sarif
+
+      - name: Upload Bandit SARIF to code scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit.sarif
+          category: bandit
+
+  typecheck:
+    name: Type check (mypy)
+    runs-on: ubuntu-latest
+    # Non-blocking: type errors should not gate PRs until the codebase is fully typed.
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install mypy + project deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install mypy==1.11.2
+          pip install -r requirements.txt
+
+      - name: mypy
+        run: mypy --ignore-missing-imports --pretty .
+
+  static-analysis-status:
+    name: Static Analysis Status
+    runs-on: ubuntu-latest
+    needs: [lint, security]
+    if: always()
+    steps:
+      - name: Aggregate result
+        run: |
+          if [ "${{ needs.lint.result }}" = "success" ] && [ "${{ needs.security.result }}" = "success" ]; then
+            echo "✅ Static analysis passed."
+            exit 0
+          else
+            echo "❌ Static analysis failed."
+            echo "  lint:     ${{ needs.lint.result }}"
+            echo "  security: ${{ needs.security.result }}"
+            exit 1
+          fi

@@ -1,31 +1,55 @@
 # Dependabot configuration for automated dependency updates
 # Documentation: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# This file drives BOTH:
+#   1. Dependabot version updates  — weekly PRs that bump dependencies.
+#   2. Dependabot security updates (SCA / Software Composition Analysis) —
+#      PRs opened automatically in response to GitHub vulnerability alerts.
+#      Security update PRs inherit the labels, reviewers, assignees and
+#      commit-message prefix of the matching ecosystem block below.
+#      (Enable them under: Repo → Settings → Code security →
+#       "Dependabot security updates".)
+#
+# Stale Dependabot PRs are auto-rebased onto the target branch via
+# `rebase-strategy: auto` so they stay mergeable without manual updates.
 
 version: 2
 updates:
-  # Python dependencies
+  # Python dependencies (SCA + version updates)
   - package-ecosystem: "pip"
-    directory: "/backend"
+    directory: "/"
+    target-branch: "main"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "03:00"
     open-pull-requests-limit: 10
+    rebase-strategy: "auto"
     reviewers:
-      - "im-sandbox-phanirb"
+      - "im-naga-ghas"
     assignees:
-      - "im-sandbox-phanirb"
+      - "im-naga-ghas"
     commit-message:
       prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
       include: "scope"
     labels:
       - "dependencies"
       - "python"
     versioning-strategy: increase
     allow:
+      # Cover direct AND transitive deps so SCA can patch vulnerable
+      # indirect packages too.
       - dependency-type: "all"
     groups:
+      # Group security-update PRs (SCA) into a single PR per run so reviewers
+      # don't get flooded with one PR per CVE.
+      python-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
       flask:
+        applies-to: version-updates
         patterns:
           - "flask*"
           - "werkzeug"
@@ -33,6 +57,7 @@ updates:
           - "minor"
           - "patch"
       testing:
+        applies-to: version-updates
         patterns:
           - "pytest*"
           - "flake8"
@@ -42,18 +67,20 @@ updates:
           - "minor"
           - "patch"
 
-  # GitHub Actions workflows
+  # GitHub Actions workflows (SCA + version updates for action versions)
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "main"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "03:00"
     open-pull-requests-limit: 5
+    rebase-strategy: "auto"
     reviewers:
-      - "im-sandbox-phanirb"
+      - "im-naga-ghas"
     assignees:
-      - "im-sandbox-phanirb"
+      - "im-naga-ghas"
     commit-message:
       prefix: "chore(ci)"
       include: "scope"
@@ -62,7 +89,12 @@ updates:
       - "github-actions"
       - "ci/cd"
     groups:
+      actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
       actions:
+        applies-to: version-updates
         patterns:
           - "*"
         update-types:
