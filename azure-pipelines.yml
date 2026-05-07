@@ -9,30 +9,48 @@ pr:
   branches:
     include:
       - main
+      - develop
+      - ghas-1
 
 stages:
   - stage: Build
     displayName: Build Python Application
+
     jobs:
       - job: build_python
         displayName: Build Python Application
+
         pool:
           vmImage: ubuntu-latest
-        strategy:
-          matrix:
-            Python39:
-              python.version: '3.9'
-            Python310:
-              python.version: '3.10'
-            Python311:
-              python.version: '3.11'
-            Python312:
-              python.version: '3.12'
+
         variables:
+          python.version: '3.11'
           PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+
         steps:
           - checkout: self
 
+          - task: UsePythonVersion@0
+            displayName: Use Python $(python.version)
+            inputs:
+              versionSpec: '$(python.version)'
+
+          - script: |
+              python --version
+              python -m pip install --upgrade pip
+
+              if [ -f requirements.txt ]; then
+                pip install -r requirements.txt
+              fi
+            displayName: Install Dependencies
+
+          - script: |
+              echo "Building Python application..."
+              
+              # Add your build commands here
+              # Example:
+              # python setup.py build
+            displayName: Build Application
           - task: UsePythonVersion@0
             displayName: 'Setup Python $(python.version)'
             inputs:
