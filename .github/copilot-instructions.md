@@ -1,610 +1,264 @@
-# Copilot Instructions for Memory Game Application
+# Copilot Instructions for InsureWell
 
 ## Project Overview
-Full-stack memory matching game built entirely with Python Flask serving HTML/CSS/JavaScript frontend.
+**InsureWell** is a lightweight health insurance management system built with **Python + Flask**, **SQLite**, and a server-rendered (Jinja2) frontend with vanilla HTML/CSS/JavaScript. It manages **policies** and **claims**, including file uploads for claim documentation.
 
 **Tech Stack:**
-- Backend: Python 3.9+, Flask 3.0
-- Frontend: HTML5, CSS3, Vanilla JavaScript (served by Flask)
-- Deployment: Render.com, Railway, or GitHub Pages (static export)
-- Testing: pytest
+- Backend: Python 3.9+, Flask (>=2.3), Werkzeug
+- Database: SQLite (file-based, WAL mode, FK enforcement)
+- Frontend: Jinja2 templates, vanilla JavaScript, hand-rolled CSS (no framework)
+- File uploads: PDF / JPG / PNG, max 5 MB
+- Testing: pytest (recommended)
 
 ---
 
 ## 1. Project Structure
 
 ```
-backend/
-├── app.py              # Flask application
-├── requirements.txt    # Python dependencies
-├── test_app.py         # Pytest tests
-├── render.yaml         # Render deployment config
-├── templates/
-│   └── index.html      # Game HTML (Jinja2 template)
-└── static/
-    ├── css/
-    │   └── styles.css  # Game styles
-    └── js/
-        └── game.js     # Game logic
+health-insure-well-app/
+├── app.py                  # Flask app — routes, REST API, DB init, seed data
+├── requirements.txt        # Python dependencies (flask, werkzeug)
+├── README.md
+│
+├── templates/              # Jinja2 templates
+│   ├── base.html           # Shared navbar / layout
+│   ├── dashboard.html      # Policy overview + recent claims
+│   └── claims.html         # Claim submission form + claims list
+│
+├── static/
+│   ├── css/style.css       # Design system (no framework)
+│   └── js/app.js           # Tab switching, AJAX form submit
+│
+├── data/                   # SQLite DB (insurewell.db) — auto-created
+├── uploads/                # Uploaded claim files — auto-created
+└── .github/
+    └── copilot-instructions.md
 ```
 
 ---
 
 ## 2. Backend Development (Flask)
 
-### API Design
-- Follow RESTful conventions
-- Return JSON with proper status codes
-- Serve frontend via Flask templates
+### Application Conventions
+- App entry point: [app.py](app.py)
+- Server runs on **http://localhost:5001** (`app.run(host='0.0.0.0', port=5001, debug=True)`).
+- DB connection per-request via Flask's `g` object; closed in `teardown_appcontext`.
+- `init_db()` creates tables and seeds sample data on first run only.
+- Timestamps stored as ISO-8601 UTC strings via `_now()` helper.
+- IDs: policies use `POL-YYYY-NNN`; new claims use `CLM-<epoch_ms>`.
 
-### Endpoints
-```python
-GET    /                    # Main game page (HTML)
-GET    /api                 # API information
-GET    /api/leaderboard     # Top scores (?limit)
-POST   /api/score           # Submit new score
-GET    /api/stats           # Game statistics
-GET    /api/health          # Health check
+### Page Routes
+```
+GET  /                 → redirect to /dashboard
+GET  /dashboard        → render dashboard.html
+GET  /claims           → render claims.html (?policy_id filter)
 ```
 
-### Error Handling & Validation
-```python
-@app.route('/api/score', methods=['POST'])
-def create_score():
-    data = request.get_json()
-    
-    # Validate required fields
-    if not all(k in data for k in ['playerName', 'score']):
-        return jsonify({'error': 'Missing fields'}), 400
-    
-    # Validate data types/ranges
-    if not isinstance(data['score'], int) or data['score'] < 0:
-        return jsonify({'error': 'Invalid score'}), 400
-    
-    # Save score
-    leaderboard.append({
-        'id': str(uuid.uuid4()),
-        'playerName': data['playerName'],
-        'score': data['score'],
-        'moves': data.get('moves', 0),
-        'time': data.get('time', 0),
-        'timestamp': datetime.now().isoformat()
-    })
-    
-    return jsonify({'success': True}), 201
-```
+### REST API
+| Method   | Endpoint                       | Description                                 |
+|----------|--------------------------------|---------------------------------------------|
+| `GET`    | `/api/health`                  | Health check                                |
+| `GET`    | `/api/policies`                | List all policies                           |
+| `GET`    | `/api/policies/<pid>`          | Get a single policy                         |
+| `POST`   | `/api/policies`                | Create policy (JSON)                        |
+| `PATCH`  | `/api/policies/<pid>`          | Update policy fields (JSON)                 |
+| `DELETE` | `/api/policies/<pid>`          | Delete policy + cascade-delete its claims   |
+| `GET`    | `/api/claims`                  | List claims (`?policy_id=` to filter)       |
+| `POST`   | `/api/claims`                  | Create claim (`multipart/form-data`)        |
+| `PATCH`  | `/api/claims/<cid>/status`     | Update claim status (JSON)                  |
+| `DELETE` | `/api/claims/<cid>`            | Delete a claim                              |
 
-### Best Practices
-- Use type hints: `def func(name: str) -> dict:`
-- Add docstrings to functions
-- Follow PEP 8 style guide
-- Use environment variables for config
+### Validation Rules
+- **Claim create:** `policy_id`, `amount` (>0), `description` required; policy must exist; optional `file` extension in `{pdf, jpg, jpeg, png}`; max 5 MB (enforced by `MAX_CONTENT_LENGTH`).
+- **Claim status:** must be one of `Pending`, `Approved`, `Rejected`.
+- **Policy create/update:** `coverage_amount` > 0; `status` ∈ `{active, inactive}`.
+- File uploads: sanitize names with `werkzeug.utils.secure_filename` and prefix with epoch ms.
 
-### Commands
-```bash
-python app.py                    # Run server (localhost:5000)
-python -m venv venv             # Create virtual environment
+### Backend Best Practices
+- Always use parameterized SQL queries (already the pattern — never f-string user input into SQL).
+- Use `request.get_json(silent=True) or {}` for JSON bodies; use `request.form` / `request.files` for multipart.
+- Return JSON with explicit status codes (`200`, `201`, `204`, `400`, `404`).
+- Add type hints and docstrings to new functions.
+- Follow PEP 8.
+
+### Commands (Windows PowerShell)
+```powershell
+# Setup
+python -m venv .venv
+.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-pip freeze > requirements.txt
-gunicorn app:app                # Production server
-```
 
----
+# Run dev server
+python app.py        # http://localhost:5001
 
-## 3. Frontend Development (JavaScript)
-
-### Structure
-```javascript
-// Game state management
-const gameState = {
-    cards: [],
-    flippedCards: [],
-    matchedPairs: 0,
-    moves: 0,
-    timer: null,
-    timeElapsed: 0,
-    isLocked: false
-};
-
-// Core functions
-function initGame() { }
-function flipCard(card) { }
-function checkMatch() { }
-function calculateScore() { }
-function submitScore(playerName) { }
-```
-
-### Best Practices
-- Use `const` and `let` (no `var`)
-- Keep functions small and focused
-- Use event delegation where appropriate
-- Handle API errors gracefully
-
-### Styling (CSS)
-```css
-:root {
-    --primary: #667eea;
-    --secondary: #764ba2;
-    --card-size: 100px;
-}
-
-.game-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-}
-```
-
----
-
-## 4. Unit Testing (pytest)
-
-### Test Examples
-```python
-def test_api_info(client):
-    """Test API info endpoint."""
-    response = client.get('/api')
-    assert response.status_code == 200
-    assert 'endpoints' in response.json
-
-def test_create_score(client):
-    """Test score submission."""
-    response = client.post('/api/score', json={
-        'playerName': 'Test',
-        'score': 500,
-        'moves': 20,
-        'time': 45
-    })
-    assert response.status_code == 201
-
-def test_invalid_score(client):
-    """Test invalid score rejection."""
-    response = client.post('/api/score', json={
-        'playerName': 'Test',
-        'score': -100  # Invalid
-    })
-    assert response.status_code == 400
-
-def test_leaderboard(client):
-    """Test leaderboard retrieval."""
-    response = client.get('/api/leaderboard')
-    assert response.status_code == 200
-    assert isinstance(response.json, list)
-
-def test_health_check(client):
-    """Test health endpoint."""
-    response = client.get('/api/health')
-    assert response.status_code == 200
-    assert response.json['status'] == 'healthy'
-```
-
-### Coverage
-- All API endpoints
-- Validation logic
-- Error handling
-- Edge cases
-
-### Commands
-```bash
-pytest                          # Run all tests
-pytest -v                       # Verbose output
-pytest --cov=. --cov-report=term  # With coverage
-pytest --cov=. --cov-report=html  # HTML coverage report
-```
-
----
-
-## 5. End-to-End Testing
-
-### Tools
-- **Playwright** or **Selenium** for E2E testing
-
-### Example E2E Test (Playwright)
-```python
-from playwright.sync_api import sync_playwright
-
-def test_complete_game():
-    with sync_playwright() as p:
-        browser = p.chromium.launch()
-        page = browser.new_page()
-        page.goto('http://localhost:5000')
-        
-        # Verify game loads
-        assert page.locator('.game-grid').is_visible()
-        
-        # Click cards
-        cards = page.locator('.card')
-        cards.nth(0).click()
-        cards.nth(1).click()
-        
-        # Submit score after game
-        page.fill('#playerName', 'E2E Test')
-        page.click('button:has-text("Submit")')
-        
-        browser.close()
-```
-
----
-
-## 6. GitHub Actions Workflows
-
-### CI/CD Pipeline
-```yaml
-name: CI/CD Pipeline
-
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12']
-    
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      
-      - name: Install dependencies
-        run: |
-          cd backend
-          pip install -r requirements.txt
-      
-      - name: Lint with flake8
-        run: |
-          cd backend
-          flake8 . --max-line-length=127
-      
-      - name: Test with pytest
-        run: |
-          cd backend
-          pytest -v --cov=. --cov-report=term
-```
-
----
-
-## 7. Documentation
-
-### README Structure
-```markdown
-# Memory Game
-
-## Features
-- 3x3 grid memory card game
-- Real-time timer and scoring
-- Leaderboard API
-
-## Quick Start
-cd backend
-python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
+# Reset seed data
+Remove-Item data\insurewell.db
 python app.py
-
-## API Endpoints
-- GET /api/leaderboard
-- POST /api/score
-
-## Testing
-pytest -v --cov=.
-
-## Deployment
-gunicorn app:app --bind 0.0.0.0:5000
 ```
 
 ---
 
-## 8. Development Guidelines
+## 3. Frontend Development
 
-### Git Workflow
-```bash
-# Feature branches
-git checkout -b feature/add-themes
-git checkout -b fix/score-calculation
+### Templates (Jinja2)
+- All pages extend [templates/base.html](templates/base.html).
+- Server passes `policies` and `claims` (lists of dicts from `row_to_dict`) to templates.
+- The claims page accepts a `selected_policy` query param for filtering.
 
-# Commit messages
-git commit -m "feat: add dark theme support"
-git commit -m "fix: correct score calculation"
-git commit -m "docs: update API documentation"
-```
+### JavaScript ([static/js/app.js](static/js/app.js))
+- Vanilla JS only — no frameworks, no build step.
+- Use `const` / `let` (never `var`).
+- Use `fetch()` for API calls; handle non-OK responses and surface errors to the user.
+- Use event delegation where reasonable.
 
-### Code Quality
-- Follow PEP 8 for Python
-- Use ESLint for JavaScript (optional)
-- Keep functions under 50 lines
-- Write descriptive variable names
-
-### Security
-- Validate all user inputs
-- Sanitize data before storage
-- Use environment variables for secrets
-- Enable HTTPS in production
-
-### Performance
-- Add database indexes for leaderboard queries
-- Cache frequently accessed data
-- Optimize static assets
-- Use gzip compression
+### CSS ([static/css/style.css](static/css/style.css))
+- Hand-rolled design system using CSS custom properties (`:root { --... }`).
+- Keep responsive breakpoints consistent with existing rules.
 
 ---
 
-## 9. Error Handling
+## 4. Error Handling
 
-### Backend (Flask) Error Handling
-
-#### Global Error Handlers
+### Backend Pattern (already used in `app.py`)
 ```python
-@app.errorhandler(400)
-def bad_request(error):
-    """Handle 400 Bad Request errors."""
-    return jsonify({
-        'error': 'Bad Request',
-        'message': str(error.description) if hasattr(error, 'description') else 'Invalid request'
-    }), 400
+@app.route('/api/claims/<cid>/status', methods=['PATCH'])
+def api_update_claim_status(cid):
+    data = request.get_json(silent=True) or {}
+    status = data.get('status')
+    if status not in ('Pending', 'Approved', 'Rejected'):
+        return jsonify({'error': 'Invalid status'}), 400
 
+    db = get_db()
+    if not db.execute('SELECT 1 FROM claims WHERE id = ?', (cid,)).fetchone():
+        return jsonify({'error': 'Claim not found'}), 404
+    ...
+```
+
+### Recommended Global Handlers (add if/when needed)
+```python
 @app.errorhandler(404)
-def not_found(error):
-    """Handle 404 Not Found errors."""
-    return jsonify({
-        'error': 'Not Found',
-        'message': 'The requested resource was not found'
-    }), 404
+def not_found(e):
+    return jsonify({'error': 'Not Found'}), 404
+
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({'error': 'File exceeds 5 MB limit'}), 413
 
 @app.errorhandler(500)
-def internal_error(error):
-    """Handle 500 Internal Server errors."""
-    app.logger.error(f'Server Error: {error}')
-    return jsonify({
-        'error': 'Internal Server Error',
-        'message': 'An unexpected error occurred'
-    }), 500
-
-@app.errorhandler(Exception)
-def handle_exception(error):
-    """Handle all unhandled exceptions."""
-    app.logger.error(f'Unhandled Exception: {error}', exc_info=True)
-    return jsonify({
-        'error': 'Server Error',
-        'message': 'An unexpected error occurred'
-    }), 500
+def server_error(e):
+    app.logger.error(f'Server error: {e}', exc_info=True)
+    return jsonify({'error': 'Internal Server Error'}), 500
 ```
 
-#### Route-Level Error Handling
+### Frontend Pattern
+```javascript
+async function submitClaim(formData) {
+    const res = await fetch('/api/claims', { method: 'POST', body: formData });
+    if (!res.ok) {
+        const { error } = await res.json().catch(() => ({}));
+        throw new Error(error || `HTTP ${res.status}`);
+    }
+    return res.json();
+}
+```
+
+---
+
+## 5. Testing (pytest)
+
+> Tests are not yet committed. When adding them, place `test_app.py` next to `app.py` and use Flask's test client. Each test should use a temporary SQLite DB (override `DB_PATH` via env var or fixture).
+
+### Example Fixtures
 ```python
-@app.route('/api/score', methods=['POST'])
-def submit_score():
-    try:
-        data = request.get_json()
-        
-        # Validate JSON parsing
-        if data is None:
-            return jsonify({'error': 'Invalid JSON'}), 400
-        
-        # Validate required fields
-        required = ['playerName', 'score', 'moves', 'time']
-        missing = [f for f in required if f not in data]
-        if missing:
-            return jsonify({
-                'error': 'Missing required fields',
-                'fields': missing
-            }), 400
-        
-        # Validate data types
-        if not isinstance(data['playerName'], str):
-            return jsonify({'error': 'playerName must be a string'}), 400
-        
-        if not isinstance(data['score'], (int, float)) or data['score'] < 0:
-            return jsonify({'error': 'score must be a non-negative number'}), 400
-        
-        # Process and save
-        # ...
-        
-        return jsonify({'success': True}), 201
-        
-    except json.JSONDecodeError:
-        return jsonify({'error': 'Invalid JSON format'}), 400
-    except Exception as e:
-        app.logger.error(f'Error submitting score: {e}')
-        return jsonify({'error': 'Failed to submit score'}), 500
+import pytest
+from app import app, init_db
+
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    monkeypatch.setattr('app.DB_PATH', str(tmp_path / 'test.db'))
+    monkeypatch.setattr('app.UPLOAD_DIR', str(tmp_path / 'uploads'))
+    init_db()
+    app.config['TESTING'] = True
+    with app.test_client() as c:
+        yield c
 ```
 
-#### Custom Exception Classes
+### Example Tests
 ```python
-class ValidationError(Exception):
-    """Raised when input validation fails."""
-    def __init__(self, message, field=None):
-        self.message = message
-        self.field = field
-        super().__init__(self.message)
+def test_health(client):
+    r = client.get('/api/health')
+    assert r.status_code == 200 and r.json['status'] == 'ok'
 
-class NotFoundError(Exception):
-    """Raised when a resource is not found."""
-    pass
+def test_list_policies(client):
+    r = client.get('/api/policies')
+    assert r.status_code == 200 and isinstance(r.json, list)
 
-@app.errorhandler(ValidationError)
-def handle_validation_error(error):
-    response = {'error': 'Validation Error', 'message': error.message}
-    if error.field:
-        response['field'] = error.field
-    return jsonify(response), 400
+def test_create_claim_requires_policy(client):
+    r = client.post('/api/claims', data={
+        'policy_id': 'POL-DOES-NOT-EXIST',
+        'amount': '100', 'description': 'x'})
+    assert r.status_code == 404
+
+def test_invalid_claim_status(client):
+    r = client.patch('/api/claims/CLM-1001/status', json={'status': 'Bogus'})
+    assert r.status_code == 400
 ```
 
-### Frontend (JavaScript) Error Handling
-
-#### API Call Error Handling
-```javascript
-async function submitScore(playerName, score, moves, time) {
-    try {
-        const response = await fetch('/api/score', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ playerName, score, moves, time })
-        });
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `HTTP ${response.status}`);
-        }
-        
-        return await response.json();
-    } catch (error) {
-        if (error.name === 'TypeError') {
-            // Network error
-            console.error('Network error:', error);
-            showError('Unable to connect to server. Please check your connection.');
-        } else {
-            console.error('API error:', error);
-            showError(error.message || 'Failed to submit score');
-        }
-        throw error;
-    }
-}
-
-async function fetchLeaderboard() {
-    try {
-        const response = await fetch('/api/leaderboard');
-        if (!response.ok) {
-            throw new Error(`Failed to fetch leaderboard: ${response.status}`);
-        }
-        return await response.json();
-    } catch (error) {
-        console.error('Leaderboard error:', error);
-        showError('Failed to load leaderboard');
-        return []; // Return empty array as fallback
-    }
-}
+### Commands
+```powershell
+pytest -v
+pytest --cov=. --cov-report=term
 ```
 
-#### User-Friendly Error Display
-```javascript
-function showError(message, duration = 5000) {
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'error-toast';
-    errorDiv.textContent = message;
-    document.body.appendChild(errorDiv);
-    
-    setTimeout(() => {
-        errorDiv.classList.add('fade-out');
-        setTimeout(() => errorDiv.remove(), 300);
-    }, duration);
-}
+---
 
-function showSuccess(message) {
-    const successDiv = document.createElement('div');
-    successDiv.className = 'success-toast';
-    successDiv.textContent = message;
-    document.body.appendChild(successDiv);
-    
-    setTimeout(() => successDiv.remove(), 3000);
-}
+## 6. Security
+- **SQL injection:** always use `?` placeholders with `sqlite3` (already the pattern).
+- **File uploads:** validate extension allowlist (`ALLOWED`), enforce `MAX_CONTENT_LENGTH`, run `secure_filename`, prefix with timestamp to prevent collisions. Do **not** serve `uploads/` publicly without an auth gate.
+- **Input validation:** trim and type-check all incoming fields before DB writes.
+- **Debug mode:** `debug=True` is for local development only — disable in production.
+- **Secrets:** use environment variables; never commit credentials.
+
+---
+
+## 7. Git Workflow
+Use Conventional Commits:
+```
+feat: add policy archive endpoint
+fix: reject claim amounts of zero
+refactor: extract claim validation helper
+docs: update API reference
+test: add coverage for delete policy cascade
+chore: bump werkzeug
 ```
 
-#### Global Error Handling
-```javascript
-// Catch unhandled promise rejections
-window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason);
-    showError('An unexpected error occurred');
-    event.preventDefault();
-});
+Branches: `feature/<slug>`, `fix/<slug>`.
 
-// Catch global errors
-window.addEventListener('error', (event) => {
-    console.error('Global error:', event.error);
-    // Don't show error for script loading failures
-    if (event.error) {
-        showError('An unexpected error occurred');
-    }
-});
-```
+---
 
-#### Input Validation
-```javascript
-function validatePlayerName(name) {
-    if (!name || typeof name !== 'string') {
-        return { valid: false, error: 'Name is required' };
-    }
-    
-    const trimmed = name.trim();
-    if (trimmed.length === 0) {
-        return { valid: false, error: 'Name cannot be empty' };
-    }
-    
-    if (trimmed.length > 50) {
-        return { valid: false, error: 'Name must be 50 characters or less' };
-    }
-    
-    // Only allow alphanumeric and basic punctuation
-    if (!/^[a-zA-Z0-9\s\-_]+$/.test(trimmed)) {
-        return { valid: false, error: 'Name contains invalid characters' };
-    }
-    
-    return { valid: true, value: trimmed };
-}
-```
+## 8. Common Tasks
 
-### Logging Best Practices
-
-#### Backend Logging
-```python
-import logging
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
-
-# Usage in routes
-@app.route('/api/score', methods=['POST'])
-def submit_score():
-    logger.info(f'Score submission request from {request.remote_addr}')
-    try:
-        # ... process score
-        logger.info(f'Score submitted successfully: {score_entry["id"]}')
-    except Exception as e:
-        logger.error(f'Score submission failed: {e}', exc_info=True)
-        raise
-```
-
-#### Frontend Logging
-```javascript
-const Logger = {
-    info: (message, data = {}) => {
-        console.log(`[INFO] ${message}`, data);
-    },
-    error: (message, error = null) => {
-        console.error(`[ERROR] ${message}`, error);
-        // Optional: Send to error tracking service
-    },
-    debug: (message, data = {}) => {
-        if (process.env.NODE_ENV === 'development') {
-            console.debug(`[DEBUG] ${message}`, data);
-        }
-    }
-};
-```
+| Task                               | Steps                                                                 |
+|------------------------------------|-----------------------------------------------------------------------|
+| Add a new API endpoint             | Add route in [app.py](app.py) → validate input → add test → update README |
+| Add a field to `policies`/`claims` | Update `init_db()` schema → migrate existing DB → update API + templates |
+| Change a page                      | Edit template under [templates/](templates/) → update [static/js/app.js](static/js/app.js) if needed |
+| Adjust styling                     | Edit [static/css/style.css](static/css/style.css) → verify responsive |
+| Reset sample data                  | Delete `data/insurewell.db` and restart `python app.py`               |
 
 ---
 
 ## Quick Reference
 
-**Port:** 5000
+**Port:** 5001
+**DB:** `data/insurewell.db` (SQLite, auto-seeded)
+**Uploads:** `uploads/` (PDF/JPG/PNG, ≤ 5 MB)
 
 **Key Files:**
-- [backend/app.py](backend/app.py) - Flask application
-- [backend/templates/index.html](backend/templates/index.html) - Game HTML
-- [backend/static/js/game.js](backend/static/js/game.js) - Game logic
-- [backend/static/css/styles.css](backend/static/css/styles.css) - Styles
-
-**Common Tasks:**
-1. Add new API endpoint → Add route in app.py → Add tests → Update docs
-2. Modify game logic → Update game.js → Test in browser
-3. Change styles → Update styles.css → Verify responsive design
+- [app.py](app.py) — Flask app, REST API, DB schema + seed
+- [templates/base.html](templates/base.html) — layout
+- [templates/dashboard.html](templates/dashboard.html) — policy dashboard
+- [templates/claims.html](templates/claims.html) — claims module
+- [static/js/app.js](static/js/app.js) — frontend logic
+- [static/css/style.css](static/css/style.css) — styles
+- [requirements.txt](requirements.txt) — Python dependencies

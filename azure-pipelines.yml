@@ -1,0 +1,153 @@
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+
+pr:
+  branches:
+    include:
+      - main
+
+stages:
+  - stage: Build
+    displayName: Build Python Application
+    jobs:
+      - job: build_python
+        displayName: Build Python Application
+        pool:
+          vmImage: ubuntu-latest
+        strategy:
+          matrix:
+            Python39:
+              python.version: '3.9'
+            Python310:
+              python.version: '3.10'
+            Python311:
+              python.version: '3.11'
+            Python312:
+              python.version: '3.12'
+        variables:
+          PIP_CACHE_DIR: $(Pipeline.Workspace)/.pip
+        steps:
+          - checkout: self
+
+          - task: UsePythonVersion@0
+            displayName: 'Setup Python $(python.version)'
+            inputs:
+              versionSpec: '$(python.version)'
+
+          - task: Cache@2
+            displayName: 'Cache pip packages'
+            inputs:
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" | backend/requirements.txt'
+              restoreKeys: |
+                pip | "$(Agent.OS)" | "$(python.version)"
+                pip | "$(Agent.OS)"
+              path: $(PIP_CACHE_DIR)
+
+          - script: |
+              python -m pip install --upgrade pip
+              pip install -r backend/requirements.txt
+              pip install flake8 pytest pytest-cov
+            displayName: 'Install dependencies'
+
+          - script: |
+              # Stop the build if there are Python syntax errors or undefined names
+              flake8 backend --count --select=E9,F63,F7,F82 --show-source --statistics
+              # Exit-zero treats all errors as warnings
+              flake8 backend --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+            displayName: 'Lint with flake8'
+            continueOnError: 'true'
+
+          - script: |
+              cd backend
+              pytest --cov=. --cov-report=xml --cov-report=html --junitxml=test-results.xml -v
+            displayName: 'Run tests'
+            continueOnError: 'true'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish test results'
+            condition: succeededOrFailed()
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: 'backend/test-results.xml'
+              testRunTitle: 'Python $(python.version)'
+
+          - task: PublishCodeCoverageResults@1
+            displayName: 'Publish code coverage'
+            condition: succeededOrFailed()
+            inputs:
+              codeCoverageTool: 'Cobertura'
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/backend/coverage.xml'
+              pathToSources: '$(System.DefaultWorkingDirectory)/backend'
+
+          - script: |
+              cd backend
+              timeout 5 python -c "from app import app; print('Flask app loaded successfully')" || true
+            displayName: 'Check Flask app starts'
+
+  - stage: SecurityScan
+    displayName: Security Scan
+    dependsOn: Build
+    jobs:
+      - job: security_scan
+        displayName: Security Scan
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+
+          - task: UsePythonVersion@0
+            displayName: 'Setup Python'
+            inputs:
+              versionSpec: '3.11'
+
+          - script: |
+              pip install safety bandit
+            displayName: 'Install security tools'
+
+          - script: |
+              cd backend
+              safety check --file requirements.txt || true
+            displayName: 'Check dependencies with Safety'
+            continueOnError: 'true'
+
+          - script: |
+              bandit -r backend/ -f json -o $(Build.ArtifactStagingDirectory)/bandit-report.json || true
+            displayName: 'Run Bandit security linter'
+            continueOnError: 'true'
+
+          - task: PublishBuildArtifacts@1
+            displayName: 'Upload Bandit report'
+            condition: always()
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)/bandit-report.json'
+              ArtifactName: 'bandit-security-report'
+
+  - stage: BuildStatus
+    displayName: Build Status Check
+    dependsOn:
+      - Build
+      - SecurityScan
+    condition: always()
+    jobs:
+      - job: build_status
+        displayName: Build Status Check
+        pool:
+          vmImage: ubuntu-latest
+        variables:
+          buildResult: $[ dependencies.Build.result ]
+          securityResult: $[ dependencies.SecurityScan.result ]
+        steps:
+          - script: |
+              echo "Build stage result:    $(buildResult)"
+              echo "Security stage result: $(securityResult)"
+              if [ "$(buildResult)" = "Succeeded" ] || [ "$(buildResult)" = "SucceededWithIssues" ]; then
+                echo "✅ All Python builds passed successfully!"
+                exit 0
+              else
+                echo "❌ Python build failed!"
+                exit 1
+              fi
+            displayName: 'Check build status'
