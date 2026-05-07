@@ -1,4 +1,4 @@
-import json
+import logging
 import os
 import secrets
 import sqlite3
@@ -14,11 +14,11 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB
 _secret_key = os.environ.get('SECRET_KEY')
-if not _secret_key and os.environ.get('FLASK_ENV') == 'production':
+if not _secret_key and os.environ.get('APP_ENV') == 'production':
     raise RuntimeError('SECRET_KEY must be set in production')
 app.config['SECRET_KEY'] = _secret_key or secrets.token_hex(32)
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', '0') == '1' or os.environ.get('FLASK_ENV') == 'production'
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', '0') == '1' or os.environ.get('APP_ENV') == 'production'
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_IDLE_TIMEOUT_MINUTES'] = int(os.environ.get('SESSION_IDLE_TIMEOUT_MINUTES', '30'))
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=app.config['SESSION_IDLE_TIMEOUT_MINUTES'])
@@ -26,7 +26,6 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=app.config['SESSION
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR   = os.path.join(BASE_DIR, 'data')
 DB_PATH    = os.path.join(DATA_DIR, 'insurewell.db')
-DATA_FILE  = os.path.join(DATA_DIR, 'store.json')
 UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
 ALLOWED    = {'pdf', 'jpg', 'jpeg', 'png'}
 LOGIN_MAX_ATTEMPTS = 5
@@ -216,6 +215,20 @@ def init_db():
         SET owner_user_id = (SELECT id FROM users WHERE username = 'david')
         WHERE holder_name = 'David Chen' AND owner_user_id IS NULL
     ''')
+    # Assign any remaining unowned policies to the first admin user so they remain accessible
+    first_user = db.execute('SELECT id FROM users ORDER BY id LIMIT 1').fetchone()
+    if first_user:
+        unowned = db.execute('SELECT COUNT(*) FROM policies WHERE owner_user_id IS NULL').fetchone()[0]
+        if unowned:
+            logging.warning(
+                '%d polic(y/ies) had no owner after migration; assigned to user id=%d. '
+                'Review and reassign as appropriate.',
+                unowned, first_user[0],
+            )
+            db.execute(
+                'UPDATE policies SET owner_user_id = ? WHERE owner_user_id IS NULL',
+                (first_user[0],),
+            )
     db.commit()
 
     db.close()
@@ -266,7 +279,7 @@ def login_required(fn):
 
 @app.before_request
 def enforce_authentication():
-    if request.endpoint in (None, 'login', 'logout', 'static'):
+    if request.endpoint in (None, 'login', 'logout', 'static', 'api_health'):
         return None
 
     user = _current_user()
@@ -285,6 +298,25 @@ def enforce_authentication():
     return None
 
 
+@app.before_request
+def enforce_csrf():
+    """Validate Origin/Referer on state-changing requests to mitigate CSRF."""
+    if app.config.get('TESTING'):
+        return None
+    if request.method not in ('POST', 'PUT', 'PATCH', 'DELETE'):
+        return None
+    # Login and logout are handled separately (login uses a token-less form,
+    # logout relies on the same same-site cookie policy)
+    if request.endpoint in ('login', 'logout'):
+        return None
+    origin = request.headers.get('Origin')
+    referer = request.headers.get('Referer')
+    host_url = request.host_url.rstrip('/')
+    check = origin or referer
+    if check and not check.startswith(host_url):
+        return jsonify({'error': 'CSRF validation failed'}), 403
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if _current_user():
@@ -300,8 +332,8 @@ def login():
         if user:
             locked_until = _parse_ts(user['locked_until'])
             if locked_until and locked_until > now:
-                error = 'Your account is temporarily locked. Please try again later.'
-                return render_template('login.html', error=error), 429
+                error = 'Invalid username or password.'
+                return render_template('login.html', error=error)
 
             if locked_until:
                 get_db().execute(
@@ -309,6 +341,7 @@ def login():
                     (user['id'],),
                 )
                 get_db().commit()
+                user = get_db().execute('SELECT * FROM users WHERE id = ?', (user['id'],)).fetchone()
 
         if user and check_password_hash(user['password_hash'], password):
             session.clear()
@@ -334,9 +367,8 @@ def login():
             locked_until = None
             if attempts >= LOGIN_MAX_ATTEMPTS:
                 locked_until = now + timedelta(minutes=LOGIN_LOCK_WINDOW_MINUTES)
-                error = 'Your account is temporarily locked. Please try again later.'
-            else:
-                error = 'Invalid username or password.'
+
+            error = 'Invalid username or password.'
 
             get_db().execute(
                 'UPDATE users SET failed_attempts = ?, failed_window_start = ?, locked_until = ? WHERE id = ?',
@@ -421,7 +453,6 @@ def claims_page():
 # ── API routes ─────────────────────────────────────────────────────────────────
 
 @app.route('/api/health')
-@login_required
 def api_health():
     return jsonify({'status': 'ok', 'timestamp': _now()})
 

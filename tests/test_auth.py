@@ -8,6 +8,7 @@ import app as insure_app
 class AuthTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
+        insure_app.DATA_DIR = self.temp_dir.name
         insure_app.DB_PATH = os.path.join(self.temp_dir.name, 'test.db')
         insure_app.UPLOAD_DIR = os.path.join(self.temp_dir.name, 'uploads')
         os.makedirs(insure_app.UPLOAD_DIR, exist_ok=True)
@@ -51,9 +52,14 @@ class AuthTests(unittest.TestCase):
     def test_account_locks_after_five_failed_attempts(self):
         for _ in range(5):
             self.client.post('/login', data={'username': 'alex', 'password': 'wrong-password'})
+        # Account is now locked; even correct credentials return a generic error to avoid disclosure
         locked = self.login(username='alex', password='InsureWell@123')
-        self.assertEqual(locked.status_code, 429)
-        self.assertIn(b'temporarily locked', locked.data)
+        self.assertEqual(locked.status_code, 200)
+        self.assertIn(b'Invalid username or password.', locked.data)
+        # Verify the session was NOT established (account remains locked)
+        resp = self.client.get('/dashboard', follow_redirects=False)
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn('/login', resp.headers['Location'])
 
     def test_row_level_policy_access(self):
         self.login(username='alex', password='InsureWell@123')
