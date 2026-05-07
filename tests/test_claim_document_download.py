@@ -101,6 +101,24 @@ class ClaimDocumentDownloadTests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.get_json()['error'], 'Claim document could not be found')
 
+    def test_downloads_legacy_timestamp_prefixed_file_for_original_filename(self):
+        legacy_name = 'receipt may 2024.pdf'
+        legacy_path = os.path.join(insurewell.UPLOAD_DIR, '1715000000000_receipt_may_2024.pdf')
+        with open(legacy_path, 'wb') as fh:
+            fh.write(b'%PDF-1.4 legacy sample')
+
+        self._insert_claim('CLM-LEGACY', 'POL-ALPHA', legacy_name)
+
+        response = self.client.get('/api/claims/CLM-LEGACY/document', headers={'X-Policy-ID': 'POL-ALPHA'})
+        try:
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.mimetype, 'application/pdf')
+            self.assertEqual(response.data, b'%PDF-1.4 legacy sample')
+            self.assertIn('attachment;', response.headers['Content-Disposition'])
+            self.assertIn('receipt may 2024.pdf', response.headers['Content-Disposition'])
+        finally:
+            response.close()
+
 
 if __name__ == '__main__':
     unittest.main()

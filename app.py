@@ -185,8 +185,20 @@ def _authenticated_policy_id():
 
 
 def _resolve_claim_document(file_name):
-    safe_name = secure_filename(file_name or '')
-    if not safe_name or safe_name != (file_name or ''):
+    display_name = (file_name or '').strip()
+    normalized_name = display_name.replace('\\', '/')
+    if (
+        not display_name
+        or os.path.isabs(display_name)
+        or normalized_name == '..'
+        or normalized_name.startswith('../')
+        or '/../' in normalized_name
+        or '/' in normalized_name
+    ):
+        return None, None
+
+    safe_name = secure_filename(display_name)
+    if not safe_name:
         return None, None
 
     upload_root = os.path.realpath(UPLOAD_DIR)
@@ -200,9 +212,9 @@ def _resolve_claim_document(file_name):
             continue
 
         if os.path.isfile(resolved):
-            return resolved, safe_name
+            return resolved, display_name
 
-    return None, safe_name
+    return None, display_name
 
 
 # ── Page routes ────────────────────────────────────────────────────────────────
