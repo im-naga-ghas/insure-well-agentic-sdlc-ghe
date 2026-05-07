@@ -120,6 +120,9 @@
             </td>
             <td>{{ c.submitted_at[:10] }}</td>
             <td class="action-cell">
+              {% if c.file_name %}
+              <button class="btn btn-sm" onclick="downloadClaimDocument('{{ c.id }}', '{{ c.policy_id }}')">Download</button>
+              {% endif %}
               <button class="btn btn-sm btn-danger" onclick="deleteClaim('{{ c.id }}', this)">Delete</button>
             </td>
           </tr>

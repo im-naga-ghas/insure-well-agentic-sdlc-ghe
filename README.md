@@ -79,6 +79,7 @@ Open **http://localhost:5001** in your browser.
 | `GET`   | `/api/policies/<id>`          | Get a single policy                |
 | `GET`   | `/api/claims`                 | List all claims                    |
 | `GET`   | `/api/claims?policy_id=<id>`  | Filter claims by policy            |
+| `GET`   | `/api/claims/<id>/document`   | Download an attached claim document|
 | `POST`  | `/api/claims`                 | Submit a new claim (multipart)     |
 | `PATCH` | `/api/claims/<id>/status`     | Update claim status                |
 

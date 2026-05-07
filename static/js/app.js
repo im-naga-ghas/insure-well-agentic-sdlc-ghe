@@ -227,6 +227,31 @@ function toggleForm() {
   }
 }
 
+async function downloadClaimDocument(id, policyId) {
+  try {
+    const res = await fetch(`/api/claims/${id}/document?policy_id=${encodeURIComponent(policyId)}`);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to download document');
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const disposition = res.headers.get('Content-Disposition') || '';
+    const match = disposition.match(/filename="?([^"]+)"?/);
+
+    link.href = url;
+    link.download = match ? match[1] : 'claim-document';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
 async function handleClaimSubmit(e) {
   e.preventDefault();
 
@@ -280,9 +305,10 @@ async function handleClaimSubmit(e) {
             <option value="Rejected">Rejected</option>
           </select>
         </td>
-        <td><span class="text-muted">—</span></td>
+        <td>${c.file_name ? `<span class="file-chip">📎 ${c.file_name}</span>` : '<span class="text-muted">—</span>'}</td>
         <td>${fmtDate(c.submitted_at)}</td>
         <td class="action-cell">
+          ${c.file_name ? `<button class="btn btn-sm" onclick="downloadClaimDocument('${c.id}', '${c.policy_id}')">Download</button>` : ''}
           <button class="btn btn-sm btn-danger" onclick="deleteClaim('${c.id}', this)">Delete</button>
         </td>`;
       tbody.prepend(tr);
