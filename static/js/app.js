@@ -229,7 +229,7 @@ function toggleForm() {
 
 async function downloadClaimDocument(id, policyId) {
   try {
-    const res = await fetch(`/api/claims/${id}/document?policy_id=${encodeURIComponent(policyId)}`);
+    const res = await fetch(`/api/claims/${encodeURIComponent(id)}/document?policy_id=${encodeURIComponent(policyId)}`);
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(data.error || 'Failed to download document');
@@ -238,11 +238,9 @@ async function downloadClaimDocument(id, policyId) {
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    const disposition = res.headers.get('Content-Disposition') || '';
-    const match = disposition.match(/filename="?([^"]+)"?/);
 
     link.href = url;
-    link.download = match ? match[1] : 'claim-document';
+    link.download = getDownloadFilename(res.headers.get('Content-Disposition'));
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -250,6 +248,17 @@ async function downloadClaimDocument(id, policyId) {
   } catch (err) {
     alert(err.message);
   }
+}
+
+function getDownloadFilename(contentDisposition) {
+  if (!contentDisposition) return 'claim-document';
+
+  const utf8Match = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+  if (utf8Match) return decodeURIComponent(utf8Match[1]);
+
+  const filenameMatch = contentDisposition.match(/filename\s*=\s*"((?:[^"\\]|\\.)*)"|filename\s*=\s*([^;]+)/i);
+  const filename = filenameMatch ? (filenameMatch[1] || filenameMatch[2] || '').trim() : '';
+  return filename ? filename.replace(/\\"/g, '"') : 'claim-document';
 }
 
 async function handleClaimSubmit(e) {

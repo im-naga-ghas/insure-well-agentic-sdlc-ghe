@@ -1,8 +1,11 @@
+import glob
 import json
 import mimetypes
 import os
+import shutil
 import sqlite3
 import time
+import uuid
 from datetime import datetime, timezone
 
 from flask import (Flask, g, jsonify, redirect, render_template,
@@ -187,18 +190,13 @@ def _resolve_claim_document(file_name):
         return None, None
 
     upload_root = os.path.realpath(UPLOAD_DIR)
+    upload_prefix = upload_root if upload_root.endswith(os.sep) else f'{upload_root}{os.sep}'
     candidates = [os.path.join(UPLOAD_DIR, safe_name)]
-
-    for entry in os.listdir(UPLOAD_DIR):
-        if entry.endswith(f'_{safe_name}'):
-            candidates.append(os.path.join(UPLOAD_DIR, entry))
+    candidates.extend(glob.glob(os.path.join(UPLOAD_DIR, f'*_{safe_name}')))
 
     for candidate in candidates:
         resolved = os.path.realpath(candidate)
-        try:
-            if os.path.commonpath([upload_root, resolved]) != upload_root:
-                continue
-        except ValueError:
+        if not resolved.startswith(upload_prefix):
             continue
 
         if os.path.isfile(resolved):
@@ -331,14 +329,18 @@ def api_create_claim():
         if not safe:
             return jsonify({'error': 'Uploaded file name is invalid'}), 400
 
-        file_name = safe
         stem, ext = os.path.splitext(safe)
-        counter = 1
-        while os.path.exists(os.path.join(UPLOAD_DIR, file_name)):
-            file_name = f'{stem}-{counter}{ext}'
-            counter += 1
+        file_name = safe
 
-        f.save(os.path.join(UPLOAD_DIR, file_name))
+        while True:
+            file_path = os.path.join(UPLOAD_DIR, file_name)
+            try:
+                fd = os.open(file_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+                with os.fdopen(fd, 'wb') as uploaded_file:
+                    shutil.copyfileobj(f.stream, uploaded_file)
+                break
+            except FileExistsError:
+                file_name = f'{stem}-{uuid.uuid4().hex[:8]}{ext}'
 
     claim_id = f'CLM-{int(time.time() * 1000)}'
     now      = _now()
