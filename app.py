@@ -221,7 +221,7 @@ def init_db():
         unowned = db.execute('SELECT COUNT(*) FROM policies WHERE owner_user_id IS NULL').fetchone()[0]
         if unowned:
             logging.warning(
-                '%d polic(y/ies) had no owner after migration; assigned to user id=%d. '
+                '%d policies had no owner after migration; assigned to user id=%d. '
                 'Review and reassign as appropriate.',
                 unowned, first_user[0],
             )
