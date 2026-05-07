@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from flask import (Flask, g, jsonify, redirect, render_template,
                    request, send_from_directory, url_for)
+from werkzeug.security import safe_join
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -71,6 +72,7 @@ def init_db():
         );
     ''')
 
+    # Lightweight schema migration for existing databases created before WI #5.
     columns = {r['name'] for r in db.execute("PRAGMA table_info('claims')").fetchall()}
     if 'stored_file_name' not in columns:
         db.execute('ALTER TABLE claims ADD COLUMN stored_file_name TEXT')
@@ -335,13 +337,19 @@ def api_download_claim_document(cid):
     if not row or not row['file_name'] or not row['stored_file_name']:
         return jsonify({'error': 'Claim document not found'}), 404
 
-    file_path = os.path.join(UPLOAD_DIR, row['stored_file_name'])
+    stored_name = row['stored_file_name']
+    if stored_name != os.path.basename(stored_name):
+        return jsonify({'error': 'Claim document not found'}), 404
+
+    file_path = safe_join(UPLOAD_DIR, stored_name)
+    if not file_path:
+        return jsonify({'error': 'Claim document not found'}), 404
     if not os.path.exists(file_path):
         return jsonify({'error': 'Claim document not found'}), 404
 
     return send_from_directory(
         UPLOAD_DIR,
-        row['stored_file_name'],
+        stored_name,
         as_attachment=True,
         download_name=row['file_name'],
     )
