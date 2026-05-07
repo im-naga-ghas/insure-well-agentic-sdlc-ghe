@@ -59,7 +59,7 @@ stages:
           - task: Cache@2
             displayName: 'Cache pip packages'
             inputs:
-              key: 'pip | "$(Agent.OS)" | "$(python.version)" | backend/requirements.txt'
+              key: 'pip | "$(Agent.OS)" | "$(python.version)" | requirements.txt'
               restoreKeys: |
                 pip | "$(Agent.OS)" | "$(python.version)"
                 pip | "$(Agent.OS)"
@@ -67,20 +67,19 @@ stages:
 
           - script: |
               python -m pip install --upgrade pip
-              pip install -r backend/requirements.txt
+              pip install -r requirements.txt
               pip install flake8 pytest pytest-cov
             displayName: 'Install dependencies'
 
           - script: |
               # Stop the build if there are Python syntax errors or undefined names
-              flake8 backend --count --select=E9,F63,F7,F82 --show-source --statistics
+              flake8 --count --select=E9,F63,F7,F82 --show-source --statistics
               # Exit-zero treats all errors as warnings
-              flake8 backend --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+              flake8 --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
             displayName: 'Lint with flake8'
             continueOnError: 'true'
 
           - script: |
-              cd backend
               pytest --cov=. --cov-report=xml --cov-report=html --junitxml=test-results.xml -v
             displayName: 'Run tests'
             continueOnError: 'true'
@@ -90,7 +89,7 @@ stages:
             condition: succeededOrFailed()
             inputs:
               testResultsFormat: 'JUnit'
-              testResultsFiles: 'backend/test-results.xml'
+              testResultsFiles: 'test-results.xml'
               testRunTitle: 'Python $(python.version)'
 
           - task: PublishCodeCoverageResults@1
@@ -98,11 +97,10 @@ stages:
             condition: succeededOrFailed()
             inputs:
               codeCoverageTool: 'Cobertura'
-              summaryFileLocation: '$(System.DefaultWorkingDirectory)/backend/coverage.xml'
-              pathToSources: '$(System.DefaultWorkingDirectory)/backend'
+              summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+              pathToSources: '$(System.DefaultWorkingDirectory)/'
 
           - script: |
-              cd backend
               timeout 5 python -c "from app import app; print('Flask app loaded successfully')" || true
             displayName: 'Check Flask app starts'
 
@@ -127,13 +125,12 @@ stages:
             displayName: 'Install security tools'
 
           - script: |
-              cd backend
               safety check --file requirements.txt || true
             displayName: 'Check dependencies with Safety'
             continueOnError: 'true'
 
           - script: |
-              bandit -r backend/ -f json -o $(Build.ArtifactStagingDirectory)/bandit-report.json || true
+              bandit -r -f json -o $(Build.ArtifactStagingDirectory)/bandit-report.json || true
             displayName: 'Run Bandit security linter'
             continueOnError: 'true'
 
