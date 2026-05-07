@@ -303,7 +303,7 @@ def login():
                 error = 'Your account is temporarily locked. Please try again later.'
                 return render_template('login.html', error=error), 429
 
-            if locked_until and locked_until <= now:
+            if locked_until:
                 get_db().execute(
                     'UPDATE users SET failed_attempts = 0, failed_window_start = NULL, locked_until = NULL WHERE id = ?',
                     (user['id'],),
