@@ -16,9 +16,9 @@ name: Static Analysis
 
 on:
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, ghas-1 ]
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, ghas-1 ]
   workflow_dispatch:
 
 permissions:
