@@ -315,6 +315,7 @@ def enforce_csrf():
     check = origin or referer
     if check and not check.startswith(host_url):
         return jsonify({'error': 'CSRF validation failed'}), 403
+    return None
 
 
 @app.route('/login', methods=['GET', 'POST'])
