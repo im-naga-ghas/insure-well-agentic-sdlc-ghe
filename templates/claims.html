@@ -112,7 +112,9 @@
               </select>
             </td>
             <td>
-              {% if c.file_name %}
+              {% if c.file_name and c.stored_file_name %}
+              <a class="file-chip" href="{{ url_for('api_download_claim_document', cid=c.id) }}">📎 {{ c.file_name }}</a>
+              {% elif c.file_name %}
               <span class="file-chip">📎 {{ c.file_name }}</span>
               {% else %}
               <span class="text-muted">—</span>

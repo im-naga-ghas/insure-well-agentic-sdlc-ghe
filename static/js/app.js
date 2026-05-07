@@ -280,7 +280,7 @@ async function handleClaimSubmit(e) {
             <option value="Rejected">Rejected</option>
           </select>
         </td>
-        <td><span class="text-muted">—</span></td>
+        <td>${c.file_name && c.stored_file_name ? `<a class="file-chip" href="/api/claims/${c.id}/document">📎 ${c.file_name}</a>` : (c.file_name ? `<span class="file-chip">📎 ${c.file_name}</span>` : '<span class="text-muted">—</span>')}</td>
         <td>${fmtDate(c.submitted_at)}</td>
         <td class="action-cell">
           <button class="btn btn-sm btn-danger" onclick="deleteClaim('${c.id}', this)">Delete</button>
@@ -533,7 +533,7 @@ async function handleClaimSubmit(e) {
         <td class="desc-cell">${c.description}</td>
         <td>$${c.amount.toLocaleString('en-US', {minimumFractionDigits:2})}</td>
         <td>${badge(c.status)}</td>
-        <td><span class="text-muted">—</span></td>
+        <td>${c.file_name && c.stored_file_name ? `<a class="file-chip" href="/api/claims/${c.id}/document">📎 ${c.file_name}</a>` : (c.file_name ? `<span class="file-chip">📎 ${c.file_name}</span>` : '<span class="text-muted">—</span>')}</td>
         <td>${fmtDate(c.submitted_at)}</td>`;
       tbody.prepend(tr);
 

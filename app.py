@@ -5,7 +5,7 @@ import time
 from datetime import datetime, timezone
 
 from flask import (Flask, g, jsonify, redirect, render_template,
-                   request, url_for)
+                   request, send_from_directory, url_for)
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -65,10 +65,15 @@ def init_db():
             description     TEXT NOT NULL,
             status          TEXT NOT NULL DEFAULT 'Pending',
             file_name       TEXT,
+            stored_file_name TEXT,
             submitted_at    TEXT NOT NULL,
             updated_at      TEXT NOT NULL
         );
     ''')
+
+    columns = {r['name'] for r in db.execute("PRAGMA table_info('claims')").fetchall()}
+    if 'stored_file_name' not in columns:
+        db.execute('ALTER TABLE claims ADD COLUMN stored_file_name TEXT')
 
     # Seed only when tables are empty
     if db.execute('SELECT COUNT(*) FROM policies').fetchone()[0] == 0:
@@ -103,14 +108,15 @@ def init_db():
         )
         db.executemany(
             '''INSERT INTO claims
-               (id, policy_id, amount, description, status, file_name, submitted_at, updated_at)
-               VALUES (:id, :policy_id, :amount, :description, :status,
-                       :file_name, :submitted_at, :updated_at)''',
+               (id, policy_id, amount, description, status, file_name, stored_file_name, submitted_at, updated_at)
+                VALUES (:id, :policy_id, :amount, :description, :status,
+                        :file_name, :stored_file_name, :submitted_at, :updated_at)''',
             [
                 {
                     'id': 'CLM-1001', 'policy_id': 'POL-2024-001', 'amount': 3200,
                     'description': 'Emergency room visit – chest pain evaluation',
                     'status': 'Approved', 'file_name': 'er_receipt_jan.pdf',
+                    'stored_file_name': None,
                     'submitted_at': '2024-02-10T09:15:00.000Z',
                     'updated_at':   '2024-02-14T11:00:00.000Z',
                 },
@@ -118,6 +124,7 @@ def init_db():
                     'id': 'CLM-1002', 'policy_id': 'POL-2024-001', 'amount': 850,
                     'description': 'Specialist consultation – orthopedics follow-up',
                     'status': 'Approved', 'file_name': 'ortho_invoice.pdf',
+                    'stored_file_name': None,
                     'submitted_at': '2024-03-05T14:30:00.000Z',
                     'updated_at':   '2024-03-09T10:20:00.000Z',
                 },
@@ -125,6 +132,7 @@ def init_db():
                     'id': 'CLM-1003', 'policy_id': 'POL-2024-001', 'amount': 12500,
                     'description': 'Knee surgery – arthroscopic procedure',
                     'status': 'Pending', 'file_name': 'surgery_discharge_summary.pdf',
+                    'stored_file_name': None,
                     'submitted_at': '2024-04-18T08:00:00.000Z',
                     'updated_at':   '2024-04-18T08:00:00.000Z',
                 },
@@ -132,6 +140,7 @@ def init_db():
                     'id': 'CLM-1004', 'policy_id': 'POL-2024-001', 'amount': 420,
                     'description': 'Prescription medications – 3-month supply',
                     'status': 'Rejected', 'file_name': None,
+                    'stored_file_name': None,
                     'submitted_at': '2024-05-02T16:45:00.000Z',
                     'updated_at':   '2024-05-07T09:30:00.000Z',
                 },
@@ -139,6 +148,7 @@ def init_db():
                     'id': 'CLM-1005', 'policy_id': 'POL-2024-001', 'amount': 1750,
                     'description': 'MRI scan – lower back pain diagnosis',
                     'status': 'Pending', 'file_name': 'mri_report.jpg',
+                    'stored_file_name': None,
                     'submitted_at': '2024-06-20T11:00:00.000Z',
                     'updated_at':   '2024-06-20T11:00:00.000Z',
                 },
@@ -146,6 +156,7 @@ def init_db():
                     'id': 'CLM-2001', 'policy_id': 'POL-2024-002', 'amount': 600,
                     'description': 'Annual physical exam and blood work panel',
                     'status': 'Approved', 'file_name': 'lab_results.pdf',
+                    'stored_file_name': None,
                     'submitted_at': '2024-04-01T10:00:00.000Z',
                     'updated_at':   '2024-04-05T14:00:00.000Z',
                 },
@@ -153,6 +164,7 @@ def init_db():
                     'id': 'CLM-2002', 'policy_id': 'POL-2024-002', 'amount': 2300,
                     'description': 'Dental surgery – wisdom tooth extraction',
                     'status': 'Pending', 'file_name': 'dental_xray.png',
+                    'stored_file_name': None,
                     'submitted_at': '2024-07-10T09:00:00.000Z',
                     'updated_at':   '2024-07-10T09:00:00.000Z',
                 },
@@ -260,22 +272,24 @@ def api_create_claim():
         return jsonify({'error': 'Amount must be a positive number'}), 400
 
     file_name = None
+    stored_file_name = None
     f = request.files.get('file')
     if f and f.filename:
         ext = os.path.splitext(f.filename)[1].lower().lstrip('.')
         if ext not in ALLOWED:
             return jsonify({'error': 'Only PDF, JPG, and PNG files are allowed'}), 400
         safe = secure_filename(f.filename)
-        f.save(os.path.join(UPLOAD_DIR, f'{int(time.time() * 1000)}_{safe}'))
+        stored_file_name = f'{int(time.time() * 1000)}_{safe}'
+        f.save(os.path.join(UPLOAD_DIR, stored_file_name))
         file_name = f.filename
 
     claim_id = f'CLM-{int(time.time() * 1000)}'
     now      = _now()
 
     db.execute(
-        '''INSERT INTO claims (id, policy_id, amount, description, status, file_name, submitted_at, updated_at)
-           VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?)''',
-        (claim_id, policy_id, amount, description, file_name, now, now),
+        '''INSERT INTO claims (id, policy_id, amount, description, status, file_name, stored_file_name, submitted_at, updated_at)
+           VALUES (?, ?, ?, ?, 'Pending', ?, ?, ?, ?)''',
+        (claim_id, policy_id, amount, description, file_name, stored_file_name, now, now),
     )
     db.commit()
 
@@ -310,6 +324,27 @@ def api_delete_claim(cid):
     db.execute('DELETE FROM claims WHERE id = ?', (cid,))
     db.commit()
     return '', 204
+
+
+@app.route('/api/claims/<cid>/document')
+def api_download_claim_document(cid):
+    row = get_db().execute(
+        'SELECT file_name, stored_file_name FROM claims WHERE id = ?',
+        (cid,),
+    ).fetchone()
+    if not row or not row['file_name'] or not row['stored_file_name']:
+        return jsonify({'error': 'Claim document not found'}), 404
+
+    file_path = os.path.join(UPLOAD_DIR, row['stored_file_name'])
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'Claim document not found'}), 404
+
+    return send_from_directory(
+        UPLOAD_DIR,
+        row['stored_file_name'],
+        as_attachment=True,
+        download_name=row['file_name'],
+    )
 
 
 @app.route('/api/policies', methods=['POST'])
