@@ -266,6 +266,14 @@ async function handleClaimSubmit(e) {
     const tbody = document.getElementById('claims-tbody');
     if (tbody) {
       const c  = data;
+      const safeFileName = c.file_name
+        ? c.file_name
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;')
+        : '';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="mono">${c.id}</td>
@@ -280,7 +288,7 @@ async function handleClaimSubmit(e) {
             <option value="Rejected">Rejected</option>
           </select>
         </td>
-        <td><span class="text-muted">—</span></td>
+        <td>${c.file_name && c.stored_file_name ? `<a class="file-chip" href="/api/claims/${c.id}/document">📎 ${safeFileName}</a>` : (c.file_name ? `<span class="file-chip">📎 ${safeFileName}</span>` : '<span class="text-muted">—</span>')}</td>
         <td>${fmtDate(c.submitted_at)}</td>
         <td class="action-cell">
           <button class="btn btn-sm btn-danger" onclick="deleteClaim('${c.id}', this)">Delete</button>
@@ -526,6 +534,14 @@ async function handleClaimSubmit(e) {
     const tbody = document.getElementById('claims-tbody');
     if (tbody) {
       const c = data;
+      const safeFileName = c.file_name
+        ? c.file_name
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#39;')
+        : '';
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="mono">${c.id}</td>
@@ -533,7 +549,7 @@ async function handleClaimSubmit(e) {
         <td class="desc-cell">${c.description}</td>
         <td>$${c.amount.toLocaleString('en-US', {minimumFractionDigits:2})}</td>
         <td>${badge(c.status)}</td>
-        <td><span class="text-muted">—</span></td>
+        <td>${c.file_name && c.stored_file_name ? `<a class="file-chip" href="/api/claims/${c.id}/document">📎 ${safeFileName}</a>` : (c.file_name ? `<span class="file-chip">📎 ${safeFileName}</span>` : '<span class="text-muted">—</span>')}</td>
         <td>${fmtDate(c.submitted_at)}</td>`;
       tbody.prepend(tr);
 

@@ -80,6 +80,7 @@ Open **http://localhost:5001** in your browser.
 | `GET`   | `/api/claims`                 | List all claims                    |
 | `GET`   | `/api/claims?policy_id=<id>`  | Filter claims by policy            |
 | `POST`  | `/api/claims`                 | Submit a new claim (multipart)     |
+| `GET`   | `/api/claims/<id>/document`   | Download claim supporting document |
 | `PATCH` | `/api/claims/<id>/status`     | Update claim status                |
 
 ### POST `/api/claims` — request body (`multipart/form-data`)
