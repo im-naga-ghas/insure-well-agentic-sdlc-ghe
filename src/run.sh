@@ -5,11 +5,15 @@
 
 set -e
 
+SCRIPT_DIR="$(cd -- "$(dirname "$0")" && pwd)"
+BACKEND_DIR="$SCRIPT_DIR/backend"
+FRONTEND_DIR="$SCRIPT_DIR/frontend"
+
 echo "🚀 Starting InsureWell Fullstack..."
 
 # Start backend in background
 echo "📦 Starting Spring Boot backend..."
-cd src/backend
+cd "$BACKEND_DIR"
 mvn spring-boot:run &
 BACKEND_PID=$!
 echo "✅ Backend started (PID: $BACKEND_PID)"
@@ -19,8 +23,10 @@ sleep 3
 
 # Start frontend
 echo "⚛️  Starting React frontend..."
-cd ../frontend
-npm install > /dev/null 2>&1
+cd "$FRONTEND_DIR"
+if [ ! -d node_modules ]; then
+	npm install
+fi
 npm start &
 FRONTEND_PID=$!
 echo "✅ Frontend started (PID: $FRONTEND_PID)"
