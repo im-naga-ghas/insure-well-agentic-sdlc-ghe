@@ -59,59 +59,12 @@ The backend API runs on **http://localhost:8080/api** and is seeded with sample 
 
 ---
 
-## API Reference
+## Documentation Map
 
-| Method  | Endpoint                      | Description                        |
-|---------|-------------------------------|------------------------------------|
-| `GET`   | `/api/health`                 | Health check                       |
-| `GET`   | `/api/policies`               | List all policies                  |
-| `GET`   | `/api/policies/<id>`          | Get a single policy                |
-| `GET`   | `/api/claims`                 | List all claims                    |
-| `GET`   | `/api/claims?policy_id=<id>`  | Filter claims by policy            |
-| `POST`  | `/api/claims`                 | Submit a new claim (multipart)     |
-| `PATCH` | `/api/claims/<id>/status`     | Update claim status                |
-
-### POST `/api/claims` — request body (`multipart/form-data`)
-
-| Field         | Type    | Required | Notes                  |
-|---------------|---------|----------|------------------------|
-| `policy_id`   | string  | Yes      | e.g. `POL-2024-001`    |
-| `amount`      | number  | Yes      | Positive decimal       |
-| `description` | string  | Yes      | Free text              |
-| `file`        | file    | No       | PDF / JPG / PNG ≤ 5 MB |
-
-### PATCH `/api/claims/<id>/status` — request body (`application/json`)
-
-```json
-{ "status": "Approved" }
-```
-
-Valid values: `Pending`, `Approved`, `Rejected`.
-
----
-
-## Sample Data
-
-Auto-seeded on first run when no data store exists:
-
-| Policy ID    | Holder       | Plan                           | Coverage | Status   |
-|--------------|--------------|--------------------------------|----------|----------|
-| POL-2024-001 | Alex Johnson | InsureWell Premium Health Plan | $250,000 | Active   |
-| POL-2024-002 | Maria Garcia | InsureWell Essential Care Plan | $150,000 | Active   |
-| POL-2023-009 | David Chen   | InsureWell Family Plus Plan    | $500,000 | Inactive |
-
-Seven sample claims are seeded across the first two policies.
-
----
-
-## Resetting Sample Data
-
-The backend uses an in-memory H2 database in local development, so sample data is recreated on every restart. To reset the app state, stop the running services and start them again:
-
-```bash
-cd src
-./run.sh
-```
+- Root [README.md](README.md): overview, quick start, and repository layout
+- Source tree [src/README.md](src/README.md): architecture, detailed backend/frontend commands, API reference, sample data, and development notes
+- Architecture docs [docs/InsureWell_HLD.md](docs/InsureWell_HLD.md) and [docs/InsureWell_DataModel.md](docs/InsureWell_DataModel.md): system design and data model
+- Workflow guides under [handbook](handbook): setup and demo flow material
 
 ---
 

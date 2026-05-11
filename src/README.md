@@ -1,6 +1,6 @@
-# InsureWell Modernized Stack — React + Spring Boot
+# InsureWell Source Tree
 
-This folder contains a full-stack implementation of InsureWell using **React** for the frontend UI and **Spring Boot** for the REST API backend.
+This folder contains the runnable application code for the current InsureWell stack.
 
 ## Architecture
 
@@ -47,9 +47,7 @@ src/
         └── api/
 ```
 
-## Features Implemented
-
-### Backend (Spring Boot)
+## Backend
 
 **REST API Endpoints:**
 
@@ -79,7 +77,7 @@ src/
 - Maven
 - Lombok (for DTOs and models)
 
-### Frontend (React)
+## Frontend
 
 **Pages:**
 1. **Dashboard** — View policies, manage policy lifecycle, see recent claims and statistics
@@ -99,15 +97,25 @@ src/
 - Axios for HTTP requests
 - Pure CSS (no frameworks) with modern design
 
-## Setup & Running
+## Local Development
 
 ### Prerequisites
 
-- **Java 17+** (for backend)
-- **Node.js 16+** (for frontend)
-- **Maven 3.8+** (for building backend)
+- **Java 17+**
+- **Node.js 18+**
+- **Maven 3.9+**
 
-### Backend Setup
+### Run both services
+
+```bash
+cd src
+./run.sh
+```
+
+Frontend: **http://localhost:3000**
+Backend API: **http://localhost:8080/api**
+
+### Backend only
 
 ```bash
 cd src/backend
@@ -121,12 +129,9 @@ mvn spring-boot:run
 
 The backend will start on **http://localhost:8080/api**.
 
-**First run:**
-- H2 database is created in memory
-- Seed data (3 policies and 7 claims) is auto-loaded
-- Check health: http://localhost:8080/api/health (see endpoint in ClaimController)
+On startup, H2 runs in memory and seed data is loaded automatically. Health check: `http://localhost:8080/api/health`.
 
-### Frontend Setup
+### Frontend only
 
 ```bash
 cd src/frontend
@@ -139,6 +144,43 @@ npm start
 ```
 
 The frontend will open on **http://localhost:3000** and automatically connect to the backend.
+
+## API Reference
+
+| Method  | Endpoint                      | Description                        |
+|---------|-------------------------------|------------------------------------|
+| `GET`   | `/api/health`                 | Health check                       |
+| `GET`   | `/api/policies`               | List all policies                  |
+| `POST`  | `/api/policies`               | Create a policy                    |
+| `GET`   | `/api/policies/{id}`          | Get a single policy                |
+| `PATCH` | `/api/policies/{id}`          | Update a policy                    |
+| `DELETE`| `/api/policies/{id}`          | Delete a policy                    |
+| `GET`   | `/api/claims`                 | List all claims                    |
+| `GET`   | `/api/claims?policy_id=<id>`  | Filter claims by policy            |
+| `POST`  | `/api/claims`                 | Submit a new claim (multipart)     |
+| `PATCH` | `/api/claims/{id}/status`     | Update claim status                |
+| `DELETE`| `/api/claims/{id}`            | Delete a claim                     |
+
+### Claim submission payload
+
+`POST /api/claims` expects `multipart/form-data` with:
+
+| Field         | Type    | Required | Notes                  |
+|---------------|---------|----------|------------------------|
+| `policy_id`   | string  | Yes      | e.g. `POL-2024-001`    |
+| `amount`      | number  | Yes      | Positive decimal       |
+| `description` | string  | Yes      | Free text              |
+| `file`        | file    | No       | PDF / JPG / PNG ≤ 5 MB |
+
+### Claim status payload
+
+`PATCH /api/claims/{id}/status` expects:
+
+```json
+{ "status": "Approved" }
+```
+
+Valid values: `Pending`, `Approved`, `Rejected`.
 
 ## Data Model
 
@@ -194,12 +236,9 @@ curl -X POST http://localhost:8080/api/policies \
 ### Submit a claim
 ```bash
 curl -X POST http://localhost:8080/api/claims \
-  -H "Content-Type: application/json" \
-  -d '{
-    "policy_id": "POL-2024-001",
-    "amount": 500,
-    "description": "Urgent care visit"
-  }'
+  -F "policy_id=POL-2024-001" \
+  -F "amount=500" \
+  -F "description=Urgent care visit"
 ```
 
 ### Update claim status
@@ -217,6 +256,20 @@ curl -X PATCH http://localhost:8080/api/claims/CLM-1715787000000/status \
 - **Error Handling:** Global exception handler can be added via `@ControllerAdvice`
 - **Testing:** Add unit tests in `src/test/` using JUnit 5 and Mockito
 
+## Sample Data
+
+On each local start, the backend seeds these policies:
+
+| Policy ID    | Holder       | Plan                           | Coverage | Status   |
+|--------------|--------------|--------------------------------|----------|----------|
+| POL-2024-001 | Alex Johnson | InsureWell Premium Health Plan | $250,000 | Active   |
+| POL-2024-002 | Maria Garcia | InsureWell Essential Care Plan | $150,000 | Active   |
+| POL-2023-009 | David Chen   | InsureWell Family Plus Plan    | $500,000 | Inactive |
+
+Seven sample claims are also seeded across the first two policies.
+
+Because H2 is configured in memory for local development, restarting the backend resets the data back to this seeded state.
+
 ## Next Steps
 
 1. Add comprehensive error handling and validation
@@ -230,4 +283,4 @@ curl -X PATCH http://localhost:8080/api/claims/CLM-1715787000000/status \
 
 ## Support
 
-For issues or questions, refer to the main [README.md](../../README.md) at the repository root.
+For project overview and repo-level onboarding, refer to the main [README.md](../README.md) at the repository root.
