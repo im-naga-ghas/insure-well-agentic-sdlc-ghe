@@ -1,6 +1,6 @@
 # InsureWell
 
-A lightweight health insurance management system built with **Python + Flask**, **SQLite**, HTML, CSS, and vanilla JavaScript.
+A lightweight health insurance management system built with a **React** frontend and a **Java Spring Boot** backend.
 
 ---
 
@@ -9,8 +9,8 @@ A lightweight health insurance management system built with **Python + Flask**, 
 - **Policy Dashboard** — view policy details (ID, plan name, coverage amount, status, dates) with per-policy stats and recent claims
 - **Multi-policy support** — clickable tabs to switch between policies without a page reload
 - **Claims Module** — submit claims (amount, description, optional file upload), filter by policy, and track status (Pending / Approved / Rejected)
-- **REST API** — JSON endpoints for all data operations
-- **Persistent storage** — JSON file store, auto-seeded with sample data on first run
+- **REST API** — JSON endpoints for policy and claim operations
+- **Seeded sample data** — H2-backed backend starts with sample policies and claims for local development
 
 ---
 
@@ -18,22 +18,14 @@ A lightweight health insurance management system built with **Python + Flask**, 
 
 ```
 InsureWell/
-├── app.py                  # Flask app — routes, API, data store, seed data
-├── requirements.txt        # Python dependencies
-│
-├── templates/              # Jinja2 HTML templates
-│   ├── base.html           # Shared navbar layout
-│   ├── dashboard.html      # Policy overview, stats, recent claims
-│   └── claims.html         # Claim submission form and claims list
-│
-├── static/
-│   ├── css/style.css       # Design system — no CSS framework
-│   └── js/app.js           # Vanilla JS — tab switching, AJAX form submit
-│
-├── data/                   # SQLite database (auto-created; git-ignored)
-├── uploads/                # Uploaded claim documents (auto-created; git-ignored)
-│
-├── .gitignore
+├── src/
+│   ├── backend/            # Spring Boot API, entities, repositories, seed data
+│   ├── frontend/           # React UI
+│   ├── run.sh              # Starts backend and frontend together
+│   └── README.md           # Stack-specific setup and API notes
+├── docs/                   # Architecture and data model docs
+├── handbook/               # Workflow and setup guides
+├── images/                 # Supporting images and demo assets
 └── README.md
 ```
 
@@ -41,7 +33,10 @@ InsureWell/
 
 ## Prerequisites
 
-- Python 3.9 or later
+- Java 17+
+- Maven 3.9+
+- Node.js 18+
+- npm 9+
 
 ---
 
@@ -50,23 +45,17 @@ InsureWell/
 ```bash
 # 1. Clone the repository
 git clone <repo-url>
-cd InsureWell
+cd insure-well-agentic-sdlc-ghe
 
-# 2. Create and activate a virtual environment
-python3 -m venv .venv
-source .venv/bin/activate      # macOS / Linux
-# .venv\Scripts\activate       # Windows
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. Start the development server
-python app.py
+# 2. Start the backend and frontend
+cd src
+chmod +x run.sh
+./run.sh
 ```
 
-Open **http://localhost:5001** in your browser.
+Open **http://localhost:3000** in your browser.
 
-> On first run, `data/insurewell.db` (SQLite) is created automatically and seeded with 3 sample policies and 7 claims.
+The backend API runs on **http://localhost:8080** and is seeded with sample policies and claims on startup.
 
 ---
 
@@ -120,8 +109,9 @@ Seven sample claims are seeded across the first two policies.
 Stop the server, delete the store file, then restart:
 
 ```bash
-rm data/insurewell.db
-python app.py
+rm src/backend/data/*.mv.db
+cd src
+./run.sh
 ```
 
 ---

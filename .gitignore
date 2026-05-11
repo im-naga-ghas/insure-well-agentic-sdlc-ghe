@@ -1,31 +1,15 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
-.eggs/
-.mypy_cache/
-.pytest_cache/
-.ruff_cache/
-*.log
+# Node / React
+node_modules/
+src/frontend/node_modules/
+src/frontend/build/
 
-# Virtual environment
-.venv/
-venv/
-env/
-ENV/
-
-# App data  (track directories via .gitkeep, ignore generated contents)
-data/insurewell.db
-data/insurewell.db-wal
-data/insurewell.db-shm
-uploads/*
-!uploads/.gitkeep
+# Java / Spring Boot
+*.class
+*.jar
+*.war
+*.nar
+target/
+src/backend/target/
 
 # Environment variables
 .env

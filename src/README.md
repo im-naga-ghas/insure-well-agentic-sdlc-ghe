@@ -217,18 +217,6 @@ curl -X PATCH http://localhost:8080/api/claims/CLM-1715787000000/status \
 - **Error Handling:** Global exception handler can be added via `@ControllerAdvice`
 - **Testing:** Add unit tests in `src/test/` using JUnit 5 and Mockito
 
-## Comparison with Flask Version
-
-| Feature              | Flask (app.py)  | Spring Boot (src/backend) |
-|----------------------|-----------------|---------------------------|
-| Framework            | Flask           | Spring Boot 3             |
-| Database             | SQLite          | H2 (swappable)            |
-| ORM                  | Raw SQL         | JPA/Hibernate             |
-| API Response Format  | JSON            | JSON (DTOs)               |
-| Frontend             | Jinja2 + Vanilla JS | React 18               |
-| Hot Reload           | Yes (dev mode)  | Yes (Spring Boot devtools) |
-| Build System         | pip             | Maven                     |
-
 ## Next Steps
 
 1. Add comprehensive error handling and validation
