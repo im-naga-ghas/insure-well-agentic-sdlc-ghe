@@ -1,0 +1,18 @@
+# Backend .gitignore
+target/
+.classpath
+.project
+.settings/
+*.jar
+*.war
+.idea/
+*.iml
+*.log
+
+# Frontend .gitignore (if separated into backend/frontend)
+node_modules/
+build/
+dist/
+.env
+.env.local
+npm-debug.log*

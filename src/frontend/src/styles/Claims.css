@@ -1,0 +1,130 @@
+.claims-container {
+  background: white;
+  border-radius: 8px;
+  padding: 2rem;
+}
+
+.claim-form-card {
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.claim-form-card h2 {
+  margin-bottom: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.section-header h2 {
+  font-size: 1.3rem;
+  margin: 0;
+}
+
+.filter-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.filter-wrap label {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.filter-wrap select {
+  width: 300px;
+}
+
+.claims-count {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.claims-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.claims-table th {
+  background-color: #f5f5f5;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 2px solid #ddd;
+  font-weight: 600;
+}
+
+.claims-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #ddd;
+}
+
+.mono {
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+.status-select {
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.status-select.status-pending {
+  background-color: #fffacd;
+}
+
+.status-select.status-approved {
+  background-color: #d4edda;
+}
+
+.status-select.status-rejected {
+  background-color: #f8d7da;
+}
+
+.delete-btn-small {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+
+.empty {
+  color: #999;
+  text-align: center;
+  padding: 2rem;
+}
