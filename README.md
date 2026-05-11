@@ -9,8 +9,9 @@ A lightweight health insurance management system built with **Python + Flask**, 
 - **Policy Dashboard** — view policy details (ID, plan name, coverage amount, status, dates) with per-policy stats and recent claims
 - **Multi-policy support** — clickable tabs to switch between policies without a page reload
 - **Claims Module** — submit claims (amount, description, optional file upload), filter by policy, and track status (Pending / Approved / Rejected)
+- **User Authentication** — login/logout with session timeout, lockout protection, and per-user data access
 - **REST API** — JSON endpoints for all data operations
-- **Persistent storage** — JSON file store, auto-seeded with sample data on first run
+- **Persistent storage** — SQLite database, auto-seeded with sample data on first run
 
 ---
 
@@ -67,6 +68,12 @@ python app.py
 Open **http://localhost:5001** in your browser.
 
 > On first run, `data/insurewell.db` (SQLite) is created automatically and seeded with 3 sample policies and 7 claims.
+
+### Default seeded users (for local development)
+
+- `alex` / `InsureWell@123`
+- `maria` / `InsureWell@123`
+- `david` / `InsureWell@123`
 
 ---
 

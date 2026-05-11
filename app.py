@@ -1,22 +1,35 @@
-import json
+import logging
 import os
+import secrets
 import sqlite3
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from functools import wraps
 
 from flask import (Flask, g, jsonify, redirect, render_template,
-                   request, url_for)
+                   request, session, url_for)
+from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 5 * 1024 * 1024  # 5 MB
+_secret_key = os.environ.get('SECRET_KEY')
+if not _secret_key and os.environ.get('APP_ENV') == 'production':
+    raise RuntimeError('SECRET_KEY must be set in production')
+app.config['SECRET_KEY'] = _secret_key or secrets.token_hex(32)
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('SESSION_COOKIE_SECURE', '0') == '1' or os.environ.get('APP_ENV') == 'production'
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_IDLE_TIMEOUT_MINUTES'] = int(os.environ.get('SESSION_IDLE_TIMEOUT_MINUTES', '30'))
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=app.config['SESSION_IDLE_TIMEOUT_MINUTES'])
 
 BASE_DIR   = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR   = os.path.join(BASE_DIR, 'data')
 DB_PATH    = os.path.join(DATA_DIR, 'insurewell.db')
-DATA_FILE  = os.path.join(DATA_DIR, 'store.json')
 UPLOAD_DIR = os.path.join(BASE_DIR, 'uploads')
 ALLOWED    = {'pdf', 'jpg', 'jpeg', 'png'}
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_LOCK_WINDOW_MINUTES = 10
 
 # ── Database ───────────────────────────────────────────────────────────────────
 
@@ -47,8 +60,18 @@ def init_db():
     db.execute('PRAGMA foreign_keys=ON')
 
     db.executescript('''
+        CREATE TABLE IF NOT EXISTS users (
+            id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+            username            TEXT UNIQUE NOT NULL,
+            password_hash       TEXT NOT NULL,
+            failed_attempts     INTEGER NOT NULL DEFAULT 0,
+            failed_window_start TEXT,
+            locked_until        TEXT
+        );
+
         CREATE TABLE IF NOT EXISTS policies (
             id              TEXT PRIMARY KEY,
+            owner_user_id   INTEGER REFERENCES users(id),
             holder_name     TEXT NOT NULL,
             plan_name       TEXT NOT NULL,
             coverage_amount REAL NOT NULL,
@@ -70,15 +93,30 @@ def init_db():
         );
     ''')
 
+    columns = {row[1] for row in db.execute('PRAGMA table_info(policies)').fetchall()}
+    if 'owner_user_id' not in columns:
+        db.execute('ALTER TABLE policies ADD COLUMN owner_user_id INTEGER REFERENCES users(id)')
+
+    if db.execute('SELECT COUNT(*) FROM users').fetchone()[0] == 0:
+        db.executemany(
+            '''INSERT INTO users (username, password_hash) VALUES (?, ?)''',
+            [
+                ('alex', generate_password_hash('InsureWell@123')),
+                ('maria', generate_password_hash('InsureWell@123')),
+                ('david', generate_password_hash('InsureWell@123')),
+            ],
+        )
+
     # Seed only when tables are empty
     if db.execute('SELECT COUNT(*) FROM policies').fetchone()[0] == 0:
         db.executemany(
             '''INSERT INTO policies
-               (id, holder_name, plan_name, coverage_amount, status, start_date, end_date, created_at)
-               VALUES (:id, :holder_name, :plan_name, :coverage_amount, :status,
+               (id, owner_user_id, holder_name, plan_name, coverage_amount, status, start_date, end_date, created_at)
+               VALUES (:id, :owner_user_id, :holder_name, :plan_name, :coverage_amount, :status,
                        :start_date, :end_date, :created_at)''',
             [
                 {
+                    'owner_user_id': 1,
                     'id': 'POL-2024-001', 'holder_name': 'Alex Johnson',
                     'plan_name': 'InsureWell Premium Health Plan',
                     'coverage_amount': 250000, 'status': 'active',
@@ -86,6 +124,7 @@ def init_db():
                     'created_at': '2024-01-01T00:00:00.000Z',
                 },
                 {
+                    'owner_user_id': 2,
                     'id': 'POL-2024-002', 'holder_name': 'Maria Garcia',
                     'plan_name': 'InsureWell Essential Care Plan',
                     'coverage_amount': 150000, 'status': 'active',
@@ -93,6 +132,7 @@ def init_db():
                     'created_at': '2024-03-15T00:00:00.000Z',
                 },
                 {
+                    'owner_user_id': 3,
                     'id': 'POL-2023-009', 'holder_name': 'David Chen',
                     'plan_name': 'InsureWell Family Plus Plan',
                     'coverage_amount': 500000, 'status': 'inactive',
@@ -160,6 +200,37 @@ def init_db():
         )
         db.commit()
 
+    db.execute('''
+        UPDATE policies
+        SET owner_user_id = (SELECT id FROM users WHERE username = 'alex')
+        WHERE holder_name = 'Alex Johnson' AND owner_user_id IS NULL
+    ''')
+    db.execute('''
+        UPDATE policies
+        SET owner_user_id = (SELECT id FROM users WHERE username = 'maria')
+        WHERE holder_name = 'Maria Garcia' AND owner_user_id IS NULL
+    ''')
+    db.execute('''
+        UPDATE policies
+        SET owner_user_id = (SELECT id FROM users WHERE username = 'david')
+        WHERE holder_name = 'David Chen' AND owner_user_id IS NULL
+    ''')
+    # Assign any remaining unowned policies to the first admin user so they remain accessible
+    first_user = db.execute('SELECT id FROM users ORDER BY id LIMIT 1').fetchone()
+    if first_user:
+        unowned = db.execute('SELECT COUNT(*) FROM policies WHERE owner_user_id IS NULL').fetchone()[0]
+        if unowned:
+            logging.warning(
+                '%d policies had no owner after migration; assigned to user id=%d. '
+                'Review and reassign as appropriate.',
+                unowned, first_user[0],
+            )
+            db.execute(
+                'UPDATE policies SET owner_user_id = ? WHERE owner_user_id IS NULL',
+                (first_user[0],),
+            )
+    db.commit()
+
     db.close()
 
 
@@ -171,35 +242,209 @@ def _now():
     return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
 
+def _parse_ts(ts):
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(ts.replace('Z', '+00:00'))
+    except ValueError:
+        return None
+
+
+def _current_user():
+    if hasattr(g, 'current_user'):
+        return g.current_user
+    uid = session.get('user_id')
+    if not uid:
+        g.current_user = None
+    else:
+        g.current_user = get_db().execute('SELECT id, username FROM users WHERE id = ?', (uid,)).fetchone()
+    return g.current_user
+
+
+def _auth_error_response():
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Authentication required'}), 401
+    return redirect(url_for('login'))
+
+
+def login_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not _current_user():
+            return _auth_error_response()
+        return fn(*args, **kwargs)
+    return wrapper
+
+
+@app.before_request
+def enforce_authentication():
+    if request.endpoint in (None, 'login', 'logout', 'static', 'api_health'):
+        return None
+
+    user = _current_user()
+    if not user:
+        return _auth_error_response()
+
+    now = datetime.now(timezone.utc)
+    last_activity = _parse_ts(session.get('last_activity'))
+    timeout_minutes = app.config.get('SESSION_IDLE_TIMEOUT_MINUTES', 30)
+    if last_activity and (now - last_activity) > timedelta(minutes=timeout_minutes):
+        session.clear()
+        return _auth_error_response()
+
+    session.permanent = True
+    session['last_activity'] = _now()
+    return None
+
+
+@app.before_request
+def enforce_csrf():
+    """Validate Origin/Referer on state-changing requests to mitigate CSRF."""
+    if app.config.get('TESTING'):
+        return None
+    if request.method not in ('POST', 'PUT', 'PATCH', 'DELETE'):
+        return None
+    # Login and logout are handled separately (login uses a token-less form,
+    # logout relies on the same same-site cookie policy)
+    if request.endpoint in ('login', 'logout'):
+        return None
+    origin = request.headers.get('Origin')
+    referer = request.headers.get('Referer')
+    host_url = request.host_url.rstrip('/')
+    check = origin or referer
+    if check and not check.startswith(host_url):
+        return jsonify({'error': 'CSRF validation failed'}), 403
+    return None
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if _current_user():
+        return redirect(url_for('dashboard'))
+
+    error = None
+    if request.method == 'POST':
+        username = (request.form.get('username') or '').strip()
+        password = request.form.get('password') or ''
+        now = datetime.now(timezone.utc)
+
+        user = get_db().execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+        if user:
+            locked_until = _parse_ts(user['locked_until'])
+            if locked_until and locked_until > now:
+                error = 'Invalid username or password.'
+                return render_template('login.html', error=error)
+
+            if locked_until:
+                get_db().execute(
+                    'UPDATE users SET failed_attempts = 0, failed_window_start = NULL, locked_until = NULL WHERE id = ?',
+                    (user['id'],),
+                )
+                get_db().commit()
+                user = get_db().execute('SELECT * FROM users WHERE id = ?', (user['id'],)).fetchone()
+
+        if user and check_password_hash(user['password_hash'], password):
+            session.clear()
+            session.permanent = True
+            session['user_id'] = user['id']
+            session['last_activity'] = _now()
+            get_db().execute(
+                'UPDATE users SET failed_attempts = 0, failed_window_start = NULL, locked_until = NULL WHERE id = ?',
+                (user['id'],),
+            )
+            get_db().commit()
+            return redirect(url_for('dashboard'))
+
+        if user:
+            window_start = _parse_ts(user['failed_window_start'])
+            attempts = user['failed_attempts'] or 0
+            if not window_start or (now - window_start) > timedelta(minutes=LOGIN_LOCK_WINDOW_MINUTES):
+                attempts = 1
+                window_start = now
+            else:
+                attempts += 1
+
+            locked_until = None
+            if attempts >= LOGIN_MAX_ATTEMPTS:
+                locked_until = now + timedelta(minutes=LOGIN_LOCK_WINDOW_MINUTES)
+
+            error = 'Invalid username or password.'
+
+            get_db().execute(
+                'UPDATE users SET failed_attempts = ?, failed_window_start = ?, locked_until = ? WHERE id = ?',
+                (attempts, window_start.strftime('%Y-%m-%dT%H:%M:%S.000Z'),
+                 locked_until.strftime('%Y-%m-%dT%H:%M:%S.000Z') if locked_until else None, user['id']),
+            )
+            get_db().commit()
+        else:
+            error = 'Invalid username or password.'
+
+    return render_template('login.html', error=error)
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
 # ── Page routes ────────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
-    return redirect(url_for('dashboard'))
+    if _current_user():
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
 
 
 @app.route('/dashboard')
+@login_required
 def dashboard():
+    user_id = _current_user()['id']
     db       = get_db()
-    policies = [row_to_dict(r) for r in db.execute('SELECT * FROM policies ORDER BY created_at').fetchall()]
-    claims   = [row_to_dict(r) for r in db.execute('SELECT * FROM claims ORDER BY submitted_at DESC').fetchall()]
+    policies = [row_to_dict(r) for r in db.execute(
+        'SELECT * FROM policies WHERE owner_user_id = ? ORDER BY created_at',
+        (user_id,),
+    ).fetchall()]
+    claims   = [row_to_dict(r) for r in db.execute(
+        '''SELECT c.* FROM claims c
+           JOIN policies p ON p.id = c.policy_id
+           WHERE p.owner_user_id = ?
+           ORDER BY c.submitted_at DESC''',
+        (user_id,),
+    ).fetchall()]
     return render_template('dashboard.html', policies=policies, claims=claims)
 
 
 @app.route('/claims')
+@login_required
 def claims_page():
+    user_id       = _current_user()['id']
     db            = get_db()
     policy_filter = request.args.get('policy_id', '')
-    policies      = [row_to_dict(r) for r in db.execute('SELECT * FROM policies ORDER BY created_at').fetchall()]
+    policies      = [row_to_dict(r) for r in db.execute(
+        'SELECT * FROM policies WHERE owner_user_id = ? ORDER BY created_at',
+        (user_id,),
+    ).fetchall()]
 
     if policy_filter:
+        if not db.execute('SELECT 1 FROM policies WHERE id = ? AND owner_user_id = ?', (policy_filter, user_id)).fetchone():
+            return render_template('claims.html', claims=[], policies=policies, selected_policy='')
         claims = [row_to_dict(r) for r in db.execute(
-            'SELECT * FROM claims WHERE policy_id = ? ORDER BY submitted_at DESC',
-            (policy_filter,),
+            '''SELECT c.* FROM claims c
+               JOIN policies p ON p.id = c.policy_id
+               WHERE c.policy_id = ? AND p.owner_user_id = ?
+               ORDER BY c.submitted_at DESC''',
+            (policy_filter, user_id),
         ).fetchall()]
     else:
         claims = [row_to_dict(r) for r in db.execute(
-            'SELECT * FROM claims ORDER BY submitted_at DESC',
+            '''SELECT c.* FROM claims c
+               JOIN policies p ON p.id = c.policy_id
+               WHERE p.owner_user_id = ?
+               ORDER BY c.submitted_at DESC''',
+            (user_id,),
         ).fetchall()]
 
     return render_template('claims.html', claims=claims, policies=policies,
@@ -214,33 +459,57 @@ def api_health():
 
 
 @app.route('/api/policies')
+@login_required
 def api_get_policies():
-    rows = get_db().execute('SELECT * FROM policies ORDER BY created_at').fetchall()
+    rows = get_db().execute(
+        'SELECT * FROM policies WHERE owner_user_id = ? ORDER BY created_at',
+        (_current_user()['id'],),
+    ).fetchall()
     return jsonify([row_to_dict(r) for r in rows])
 
 
 @app.route('/api/policies/<pid>')
+@login_required
 def api_get_policy(pid):
-    row = get_db().execute('SELECT * FROM policies WHERE id = ?', (pid,)).fetchone()
+    row = get_db().execute(
+        'SELECT * FROM policies WHERE id = ? AND owner_user_id = ?',
+        (pid, _current_user()['id']),
+    ).fetchone()
     if not row:
         return jsonify({'error': 'Policy not found'}), 404
     return jsonify(row_to_dict(row))
 
 
 @app.route('/api/claims', methods=['GET'])
+@login_required
 def api_get_claims():
+    user_id = _current_user()['id']
     pid = request.args.get('policy_id')
     if pid:
+        if not get_db().execute('SELECT 1 FROM policies WHERE id = ? AND owner_user_id = ?', (pid, user_id)).fetchone():
+            return jsonify([])
         rows = get_db().execute(
-            'SELECT * FROM claims WHERE policy_id = ? ORDER BY submitted_at DESC', (pid,),
+            '''SELECT c.* FROM claims c
+               JOIN policies p ON p.id = c.policy_id
+               WHERE c.policy_id = ? AND p.owner_user_id = ?
+               ORDER BY c.submitted_at DESC''',
+            (pid, user_id),
         ).fetchall()
     else:
-        rows = get_db().execute('SELECT * FROM claims ORDER BY submitted_at DESC').fetchall()
+        rows = get_db().execute(
+            '''SELECT c.* FROM claims c
+               JOIN policies p ON p.id = c.policy_id
+               WHERE p.owner_user_id = ?
+               ORDER BY c.submitted_at DESC''',
+            (user_id,),
+        ).fetchall()
     return jsonify([row_to_dict(r) for r in rows])
 
 
 @app.route('/api/claims', methods=['POST'])
+@login_required
 def api_create_claim():
+    user_id     = _current_user()['id']
     policy_id   = (request.form.get('policy_id') or '').strip()
     amount_str  = (request.form.get('amount') or '').strip()
     description = (request.form.get('description') or '').strip()
@@ -249,7 +518,7 @@ def api_create_claim():
         return jsonify({'error': 'policy_id, amount, and description are required'}), 400
 
     db = get_db()
-    if not db.execute('SELECT 1 FROM policies WHERE id = ?', (policy_id,)).fetchone():
+    if not db.execute('SELECT 1 FROM policies WHERE id = ? AND owner_user_id = ?', (policy_id, user_id)).fetchone():
         return jsonify({'error': 'Policy not found'}), 404
 
     try:
@@ -284,7 +553,9 @@ def api_create_claim():
 
 
 @app.route('/api/claims/<cid>/status', methods=['PATCH'])
+@login_required
 def api_update_claim_status(cid):
+    user_id = _current_user()['id']
     data   = request.get_json(silent=True) or {}
     status = data.get('status')
     valid  = ['Pending', 'Approved', 'Rejected']
@@ -292,7 +563,12 @@ def api_update_claim_status(cid):
         return jsonify({'error': f'Status must be one of: {", ".join(valid)}'}), 400
 
     db = get_db()
-    if not db.execute('SELECT 1 FROM claims WHERE id = ?', (cid,)).fetchone():
+    if not db.execute(
+        '''SELECT 1 FROM claims c
+           JOIN policies p ON p.id = c.policy_id
+           WHERE c.id = ? AND p.owner_user_id = ?''',
+        (cid, user_id),
+    ).fetchone():
         return jsonify({'error': 'Claim not found'}), 404
 
     db.execute('UPDATE claims SET status = ?, updated_at = ? WHERE id = ?', (status, _now(), cid))
@@ -303,9 +579,16 @@ def api_update_claim_status(cid):
 
 
 @app.route('/api/claims/<cid>', methods=['DELETE'])
+@login_required
 def api_delete_claim(cid):
+    user_id = _current_user()['id']
     db = get_db()
-    if not db.execute('SELECT 1 FROM claims WHERE id = ?', (cid,)).fetchone():
+    if not db.execute(
+        '''SELECT 1 FROM claims c
+           JOIN policies p ON p.id = c.policy_id
+           WHERE c.id = ? AND p.owner_user_id = ?''',
+        (cid, user_id),
+    ).fetchone():
         return jsonify({'error': 'Claim not found'}), 404
     db.execute('DELETE FROM claims WHERE id = ?', (cid,))
     db.commit()
@@ -313,6 +596,7 @@ def api_delete_claim(cid):
 
 
 @app.route('/api/policies', methods=['POST'])
+@login_required
 def api_create_policy():
     data            = request.get_json(silent=True) or {}
     holder_name     = str(data.get('holder_name') or '').strip()
@@ -335,7 +619,8 @@ def api_create_policy():
     except ValueError:
         return jsonify({'error': 'coverage_amount must be a positive number'}), 400
 
-    db   = get_db()
+    db    = get_db()
+    user_id = _current_user()['id']
     year = datetime.now(timezone.utc).year
     count = db.execute(
         'SELECT COUNT(*) FROM policies WHERE id LIKE ?', (f'POL-{year}-%',)
@@ -348,18 +633,19 @@ def api_create_policy():
 
     now = _now()
     db.execute(
-        '''INSERT INTO policies (id, holder_name, plan_name, coverage_amount, status, start_date, end_date, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-        (policy_id, holder_name, plan_name, coverage_amount, status, start_date, end_date, now),
+        '''INSERT INTO policies (id, owner_user_id, holder_name, plan_name, coverage_amount, status, start_date, end_date, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+        (policy_id, user_id, holder_name, plan_name, coverage_amount, status, start_date, end_date, now),
     )
     db.commit()
     return jsonify(row_to_dict(db.execute('SELECT * FROM policies WHERE id = ?', (policy_id,)).fetchone())), 201
 
 
 @app.route('/api/policies/<pid>', methods=['PATCH'])
+@login_required
 def api_update_policy(pid):
     db = get_db()
-    if not db.execute('SELECT 1 FROM policies WHERE id = ?', (pid,)).fetchone():
+    if not db.execute('SELECT 1 FROM policies WHERE id = ? AND owner_user_id = ?', (pid, _current_user()['id'])).fetchone():
         return jsonify({'error': 'Policy not found'}), 404
 
     data   = request.get_json(silent=True) or {}
@@ -396,9 +682,11 @@ def api_update_policy(pid):
 
 
 @app.route('/api/policies/<pid>', methods=['DELETE'])
+@login_required
 def api_delete_policy(pid):
+    user_id = _current_user()['id']
     db = get_db()
-    if not db.execute('SELECT 1 FROM policies WHERE id = ?', (pid,)).fetchone():
+    if not db.execute('SELECT 1 FROM policies WHERE id = ? AND owner_user_id = ?', (pid, user_id)).fetchone():
         return jsonify({'error': 'Policy not found'}), 404
     db.execute('DELETE FROM claims WHERE policy_id = ?', (pid,))
     db.execute('DELETE FROM policies WHERE id = ?', (pid,))
