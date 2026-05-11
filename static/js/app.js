@@ -227,6 +227,40 @@ function toggleForm() {
   }
 }
 
+async function downloadClaimDocument(id, policyId) {
+  try {
+    const res = await fetch(`/api/claims/${encodeURIComponent(id)}/document?policy_id=${encodeURIComponent(policyId)}`);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || 'Failed to download document');
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+
+    link.href = url;
+    link.download = getDownloadFilename(res.headers.get('Content-Disposition'));
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+function getDownloadFilename(contentDisposition) {
+  if (!contentDisposition) return 'claim-document';
+
+  const utf8Match = contentDisposition.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+  if (utf8Match) return decodeURIComponent(utf8Match[1]);
+
+  const filenameMatch = contentDisposition.match(/filename\s*=\s*"((?:[^"\\]|\\.)*)"|filename\s*=\s*([^;]+)/i);
+  const filename = filenameMatch ? (filenameMatch[1] || filenameMatch[2] || '').trim() : '';
+  return filename ? filename.replace(/\\"/g, '"') : 'claim-document';
+}
+
 async function handleClaimSubmit(e) {
   e.preventDefault();
 
@@ -280,9 +314,10 @@ async function handleClaimSubmit(e) {
             <option value="Rejected">Rejected</option>
           </select>
         </td>
-        <td><span class="text-muted">—</span></td>
+        <td>${c.file_name ? `<span class="file-chip">📎 ${c.file_name}</span>` : '<span class="text-muted">—</span>'}</td>
         <td>${fmtDate(c.submitted_at)}</td>
         <td class="action-cell">
+          ${c.file_name ? `<button class="btn btn-sm" onclick="downloadClaimDocument('${c.id}', '${c.policy_id}')">Download</button>` : ''}
           <button class="btn btn-sm btn-danger" onclick="deleteClaim('${c.id}', this)">Delete</button>
         </td>`;
       tbody.prepend(tr);

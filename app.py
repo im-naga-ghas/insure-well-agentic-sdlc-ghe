@@ -1,11 +1,15 @@
+import glob
 import json
+import mimetypes
 import os
+import shutil
 import sqlite3
 import time
+import uuid
 from datetime import datetime, timezone
 
 from flask import (Flask, g, jsonify, redirect, render_template,
-                   request, url_for)
+                   request, send_file, url_for)
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -171,6 +175,48 @@ def _now():
     return datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.000Z')
 
 
+def _authenticated_policy_id():
+    return (
+        request.headers.get('X-Policy-ID')
+        or request.args.get('policy_id')
+        or request.cookies.get('policy_id')
+        or ''
+    ).strip()
+
+
+def _resolve_claim_document(file_name):
+    display_name = (file_name or '').strip()
+    normalized_name = display_name.replace('\\', '/')
+    if (
+        not display_name
+        or os.path.isabs(display_name)
+        or normalized_name == '..'
+        or normalized_name.startswith('../')
+        or '/../' in normalized_name
+        or '/' in normalized_name
+    ):
+        return None, None
+
+    safe_name = secure_filename(display_name)
+    if not safe_name:
+        return None, None
+
+    upload_root = os.path.realpath(UPLOAD_DIR)
+    upload_prefix = upload_root if upload_root.endswith(os.sep) else f'{upload_root}{os.sep}'
+    candidates = [os.path.join(UPLOAD_DIR, safe_name)]
+    candidates.extend(glob.glob(os.path.join(UPLOAD_DIR, f'*_{safe_name}')))
+
+    for candidate in candidates:
+        resolved = os.path.realpath(candidate)
+        if not resolved.startswith(upload_prefix):
+            continue
+
+        if os.path.isfile(resolved):
+            return resolved, display_name
+
+    return None, display_name
+
+
 # ── Page routes ────────────────────────────────────────────────────────────────
 
 @app.route('/')
@@ -239,6 +285,32 @@ def api_get_claims():
     return jsonify([row_to_dict(r) for r in rows])
 
 
+@app.route('/api/claims/<cid>/document')
+def api_get_claim_document(cid):
+    db = get_db()
+    claim = db.execute('SELECT * FROM claims WHERE id = ?', (cid,)).fetchone()
+    if not claim:
+        return jsonify({'error': 'Claim not found'}), 404
+
+    if _authenticated_policy_id() != claim['policy_id']:
+        return jsonify({'error': 'You are not allowed to access this claim document'}), 403
+
+    if not claim['file_name']:
+        return jsonify({'error': 'No document is attached to this claim'}), 404
+
+    file_path, download_name = _resolve_claim_document(claim['file_name'])
+    if not file_path:
+        return jsonify({'error': 'Claim document could not be found'}), 404
+
+    mimetype, _ = mimetypes.guess_type(download_name)
+    return send_file(
+        file_path,
+        mimetype=mimetype or 'application/octet-stream',
+        as_attachment=True,
+        download_name=download_name,
+    )
+
+
 @app.route('/api/claims', methods=['POST'])
 def api_create_claim():
     policy_id   = (request.form.get('policy_id') or '').strip()
@@ -266,8 +338,21 @@ def api_create_claim():
         if ext not in ALLOWED:
             return jsonify({'error': 'Only PDF, JPG, and PNG files are allowed'}), 400
         safe = secure_filename(f.filename)
-        f.save(os.path.join(UPLOAD_DIR, f'{int(time.time() * 1000)}_{safe}'))
-        file_name = f.filename
+        if not safe:
+            return jsonify({'error': 'Uploaded file name is invalid'}), 400
+
+        stem, ext = os.path.splitext(safe)
+        file_name = safe
+
+        while True:
+            file_path = os.path.join(UPLOAD_DIR, file_name)
+            try:
+                fd = os.open(file_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+                with os.fdopen(fd, 'wb') as uploaded_file:
+                    shutil.copyfileobj(f.stream, uploaded_file)
+                break
+            except FileExistsError:
+                file_name = f'{stem}-{uuid.uuid4().hex[:8]}{ext}'
 
     claim_id = f'CLM-{int(time.time() * 1000)}'
     now      = _now()
