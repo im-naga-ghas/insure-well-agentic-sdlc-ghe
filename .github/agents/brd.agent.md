@@ -1,5 +1,5 @@
 ---
-name: 1.SDLC Plan Agent
+name: 2.SDLC BRD Agent
 description: "Use when: creating BRD, Epics, and Features from a business idea. Planning only. No code.."
 ---
 

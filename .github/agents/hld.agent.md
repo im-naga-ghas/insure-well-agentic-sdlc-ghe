@@ -1,5 +1,5 @@
 ---
-name: 2.SDLC HLD Agent
+name: 1.SDLC HLD Agent
 description: "Use when: converting BRD, Epics, and Features into HLD and Data Model. Design only. No code"
 ---
 
