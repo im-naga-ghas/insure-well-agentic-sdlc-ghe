@@ -22,7 +22,7 @@ InsureWell/
 │   ├── backend/            # Spring Boot API, entities, repositories, seed data
 │   ├── frontend/           # React UI
 │   ├── run.sh              # Starts backend and frontend together
-│   └── README.md           # Stack-specific setup and API notes
+│   └── README.md           # Short source-tree note
 ├── docs/                   # Architecture and data model docs
 ├── handbook/               # Workflow and setup guides
 ├── images/                 # Supporting images and demo assets
@@ -55,7 +55,7 @@ chmod +x run.sh
 
 Open **http://localhost:3000** in your browser.
 
-The backend API runs on **http://localhost:8080** and is seeded with sample policies and claims on startup.
+The backend API runs on **http://localhost:8080/api** and is seeded with sample policies and claims on startup. The script installs frontend dependencies automatically if `node_modules` is missing.
 
 ---
 
@@ -106,10 +106,9 @@ Seven sample claims are seeded across the first two policies.
 
 ## Resetting Sample Data
 
-Stop the server, delete the store file, then restart:
+The backend uses an in-memory H2 database in local development, so sample data is recreated on every restart. To reset the app state, stop the running services and start them again:
 
 ```bash
-rm src/backend/data/*.mv.db
 cd src
 ./run.sh
 ```
