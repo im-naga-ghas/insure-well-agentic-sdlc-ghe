@@ -14,6 +14,18 @@ A lightweight health insurance management system built with a **React** frontend
 
 ---
 
+## Screenshots
+
+### Dashboard
+
+![InsureWell Dashboard](images/insurewell-dashboard.png)
+
+### Claims
+
+![InsureWell Claims](images/insurewell-claims.png)
+
+---
+
 ## Project Structure
 
 ```
