@@ -91,25 +91,26 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
   };
 
   return (
-    <div className="dashboard-container">
+    <div className="dashboard-container" data-testid="dashboard">
       <div className="page-header">
         <div>
           <h1>Policy Dashboard</h1>
-          <p>{policies.length} polic{policies.length === 1 ? 'y' : 'ies'} on your account</p>
+          <p data-testid="policy-count">{policies.length} polic{policies.length === 1 ? 'y' : 'ies'} on your account</p>
         </div>
-        <button className="btn btn-primary" onClick={openAddModal}>
+        <button className="btn btn-primary" onClick={openAddModal} data-testid="add-policy-btn">
           + Add Policy
         </button>
       </div>
 
       {selectedPolicy && (
         <>
-          <div className="policy-tabs">
+          <div className="policy-tabs" data-testid="policy-tabs">
             {policies.map(policy => (
               <div
                 key={policy.id}
                 className={`policy-tab ${selectedPolicyId === policy.id ? 'active' : ''}`}
                 onClick={() => setSelectedPolicyId(policy.id)}
+                data-testid={`policy-tab-${policy.id}`}
               >
                 <span>{policy.holderName}</span>
                 <span className="policy-id">{policy.id}</span>
@@ -117,12 +118,14 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
                   <button
                     className="edit-btn"
                     onClick={(e) => { e.stopPropagation(); openEditModal(policy); }}
+                    data-testid={`edit-policy-btn-${policy.id}`}
                   >
                     ✏️
                   </button>
                   <button
                     className="delete-btn"
                     onClick={(e) => { e.stopPropagation(); handleDeletePolicy(policy.id, policy.holderName); }}
+                    data-testid={`delete-policy-btn-${policy.id}`}
                   >
                     🗑️
                   </button>
@@ -131,7 +134,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
             ))}
           </div>
 
-          <div className="policy-card">
+          <div className="policy-card" data-testid="policy-card">
             <div className="policy-header">
               <div>
                 <p className="policy-plan">{selectedPolicy.planName}</p>
@@ -161,20 +164,20 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
             </div>
           </div>
 
-          <div className="stats-row">
-            <div className="stat-card">
+          <div className="stats-row" data-testid="stats-row">
+            <div className="stat-card" data-testid="stat-total-claims">
               <span className="stat-value">{policyClaims.length}</span>
               <span className="stat-label">Total Claims</span>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" data-testid="stat-pending">
               <span className="stat-value warning">{pendingCount}</span>
               <span className="stat-label">Pending</span>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" data-testid="stat-approved">
               <span className="stat-value success">{approvedCount}</span>
               <span className="stat-label">Approved</span>
             </div>
-            <div className="stat-card">
+            <div className="stat-card" data-testid="stat-total-amount">
               <span className="stat-value">${totalClaimed.toLocaleString()}</span>
               <span className="stat-label">Total Claimed</span>
             </div>
@@ -185,7 +188,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
             {policyClaims.length === 0 ? (
               <p className="empty">No claims yet</p>
             ) : (
-              <table className="claims-table">
+              <table className="claims-table" data-testid="recent-claims-table">
                 <thead>
                   <tr>
                     <th>Claim ID</th>
@@ -217,11 +220,11 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
       )}
 
       {showPolicyModal && (
-        <div className="modal-overlay" onClick={() => setShowPolicyModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => setShowPolicyModal(false)} data-testid="modal-overlay">
+          <div className="modal-content" onClick={e => e.stopPropagation()} data-testid="policy-modal">
             <h2>{modalMode === 'add' ? 'Add Policy' : 'Edit Policy'}</h2>
-            {error && <div className="alert alert-error">{error}</div>}
-            <form onSubmit={handleSavePolicy}>
+            {error && <div className="alert alert-error" data-testid="policy-form-error">{error}</div>}
+            <form onSubmit={handleSavePolicy} data-testid="policy-form">
               <div className="form-group">
                 <label>Holder Name</label>
                 <input
@@ -230,6 +233,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
                   value={formData.holderName}
                   onChange={handleInputChange}
                   required
+                  data-testid="input-holder-name"
                 />
               </div>
               <div className="form-group">
@@ -240,6 +244,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
                   value={formData.planName}
                   onChange={handleInputChange}
                   required
+                  data-testid="input-plan-name"
                 />
               </div>
               <div className="form-group">
@@ -250,6 +255,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
                   value={formData.coverageAmount}
                   onChange={handleInputChange}
                   required
+                  data-testid="input-coverage-amount"
                 />
               </div>
               <div className="form-group">
@@ -258,6 +264,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
                   name="status"
                   value={formData.status}
                   onChange={handleInputChange}
+                  data-testid="select-policy-status"
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
@@ -272,6 +279,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
                   onChange={handleInputChange}
                   placeholder="YYYY-MM-DD"
                   required
+                  data-testid="input-start-date"
                 />
               </div>
               <div className="form-group">
@@ -283,13 +291,14 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
                   onChange={handleInputChange}
                   placeholder="YYYY-MM-DD"
                   required
+                  data-testid="input-end-date"
                 />
               </div>
               <div className="form-actions">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowPolicyModal(false)}>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowPolicyModal(false)} data-testid="cancel-policy-btn">
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
+                <button type="submit" className="btn btn-primary" data-testid="save-policy-btn">
                   {modalMode === 'add' ? 'Add Policy' : 'Save Changes'}
                 </button>
               </div>

@@ -82,7 +82,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
   };
 
   return (
-    <div className="claims-container">
+    <div className="claims-container" data-testid="claims">
       <div className="page-header">
         <div>
           <h1>Claims</h1>
@@ -91,6 +91,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
         <button
           className="btn btn-primary"
           onClick={() => setShowForm(!showForm)}
+          data-testid="new-claim-btn"
         >
           {showForm ? '✕ Cancel' : '+ New Claim'}
         </button>
@@ -99,8 +100,8 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
       {showForm && (
         <div className="claim-form-card">
           <h2>Submit New Claim</h2>
-          {error && <div className="alert alert-error">{error}</div>}
-          <form onSubmit={handleSubmitClaim}>
+          {error && <div className="alert alert-error" data-testid="claim-form-error">{error}</div>}
+          <form onSubmit={handleSubmitClaim} data-testid="claim-form">
             <div className="form-row">
               <div className="form-group">
                 <label>Policy</label>
@@ -109,6 +110,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
                   value={formData.policy_id}
                   onChange={handleInputChange}
                   required
+                  data-testid="select-claim-policy"
                 >
                   {policies.map(p => (
                     <option key={p.id} value={p.id}>
@@ -128,6 +130,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
                   min="0.01"
                   step="0.01"
                   required
+                  data-testid="input-claim-amount"
                 />
               </div>
             </div>
@@ -140,10 +143,11 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
                 placeholder="Describe the medical service or expense…"
                 rows="3"
                 required
+                data-testid="input-claim-description"
               />
             </div>
             <div className="form-actions">
-              <button type="submit" className="btn btn-primary" disabled={submitting}>
+              <button type="submit" className="btn btn-primary" disabled={submitting} data-testid="submit-claim-btn">
                 {submitting ? 'Submitting…' : 'Submit Claim'}
               </button>
             </div>
@@ -156,7 +160,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
           <h2>Submitted Claims</h2>
           <div className="filter-wrap">
             <label>Filter by policy:</label>
-            <select value={filterPolicyId} onChange={e => setFilterPolicyId(e.target.value)}>
+            <select value={filterPolicyId} onChange={e => setFilterPolicyId(e.target.value)} data-testid="filter-policy">
               <option value="">All Policies</option>
               {policies.map(p => (
                 <option key={p.id} value={p.id}>
@@ -165,13 +169,13 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
               ))}
             </select>
           </div>
-          <span className="claims-count">{filteredClaims.length} claim{filteredClaims.length !== 1 ? 's' : ''}</span>
+          <span className="claims-count" data-testid="claims-count">{filteredClaims.length} claim{filteredClaims.length !== 1 ? 's' : ''}</span>
         </div>
 
         {filteredClaims.length === 0 ? (
           <p className="empty">No claims</p>
         ) : (
-          <table className="claims-table">
+          <table className="claims-table" data-testid="claims-table">
             <thead>
               <tr>
                 <th>Claim ID</th>
@@ -185,7 +189,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
             </thead>
             <tbody>
               {filteredClaims.map(claim => (
-                <tr key={claim.id}>
+                <tr key={claim.id} data-testid={`claim-row-${claim.id}`}>
                   <td className="mono">{claim.id}</td>
                   <td className="mono">{claim.policyId}</td>
                   <td>{claim.description}</td>
@@ -195,6 +199,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
                       value={claim.status}
                       onChange={e => handleStatusChange(claim.id, e.target.value)}
                       className={`status-select status-${claim.status.toLowerCase()}`}
+                      data-testid={`claim-status-${claim.id}`}
                     >
                       <option value="Pending">Pending</option>
                       <option value="Approved">Approved</option>
@@ -206,6 +211,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
                     <button
                       className="delete-btn-small"
                       onClick={() => handleDeleteClaim(claim.id)}
+                      data-testid={`delete-claim-${claim.id}`}
                     >
                       🗑️
                     </button>

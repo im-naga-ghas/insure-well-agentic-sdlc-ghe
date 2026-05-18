@@ -3,7 +3,7 @@ import '../styles/Navigation.css';
 
 function Navigation({ currentPage, setCurrentPage }) {
   return (
-    <nav className="navbar">
+    <nav className="navbar" data-testid="navbar">
       <div className="navbar-brand">
         <h1>🏥 InsureWell</h1>
       </div>
@@ -12,6 +12,7 @@ function Navigation({ currentPage, setCurrentPage }) {
           <button
             className={`nav-link ${currentPage === 'dashboard' ? 'active' : ''}`}
             onClick={() => setCurrentPage('dashboard')}
+            data-testid="nav-dashboard"
           >
             Dashboard
           </button>
@@ -20,6 +21,7 @@ function Navigation({ currentPage, setCurrentPage }) {
           <button
             className={`nav-link ${currentPage === 'claims' ? 'active' : ''}`}
             onClick={() => setCurrentPage('claims')}
+            data-testid="nav-claims"
           >
             Claims
           </button>
