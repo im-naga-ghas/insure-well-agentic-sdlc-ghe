@@ -5,6 +5,10 @@ pr:
   branches:
     include:
       - main
+  paths:
+    include:
+      - src/frontend/**
+      - pipelines/frontend.yml
 
 pool:
   vmImage: ubuntu-latest
