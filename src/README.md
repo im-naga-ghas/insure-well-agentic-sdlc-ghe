@@ -67,7 +67,7 @@ src/
 - In-memory H2 database (development)
 - JPA/Hibernate ORM
 - Auto-seeded with sample data on startup
-- Supports SQLite/PostgreSQL with config changes
+- Can be adapted to persistent databases such as PostgreSQL with configuration changes
 
 **Technology Stack:**
 - Java 17

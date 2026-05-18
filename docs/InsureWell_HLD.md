@@ -1,8 +1,8 @@
 # InsureWell High-Level Design
 
 ## 1. Overview
-InsureWell is a Flask + SQLite web application that provides policy management and claim lifecycle capabilities through:
-- Server-rendered pages for dashboard and claims workflows.
+InsureWell is a React + Spring Boot application that provides policy management and claim lifecycle capabilities through:
+- A React frontend for dashboard and claims workflows.
 - REST APIs for policy and claim CRUD operations.
 - File upload support for claim attachments.
 
@@ -11,7 +11,7 @@ This HLD is derived from the current codebase implementation and is intended to 
 ## 2. Scope and Goals
 ### In scope
 - Component boundaries and responsibilities.
-- Data flow across browser, Flask routes, SQLite, and uploads storage.
+- Data flow across browser, React UI, Spring Boot APIs, H2-backed persistence, and attachment handling.
 - Claims upload pipeline.
 - REST API surface and behavior expectations.
 - Validation, error handling, observability, and testing strategy.
@@ -23,51 +23,48 @@ This HLD is derived from the current codebase implementation and is intended to 
 
 ## 3. Architecture Summary
 ### Runtime stack
-- Python Flask application process.
-- SQLite database at `data/insurewell.db`.
-- Local file storage for uploads at `uploads/`.
-- Jinja templates and static assets served by Flask.
+- React 18 frontend served by the development server during local development.
+- Java 17 Spring Boot 3.1.5 backend process.
+- H2 in-memory database for local development.
+- Multipart attachment handling exposed through REST endpoints.
 
 ### Component diagram (logical)
 ```text
-+-------------------+        HTTP(S)         +-------------------------------+
-| Browser UI        | <--------------------> | Flask App (app.py)            |
-| - dashboard.html  |                        |                               |
-| - claims.html     |                        |  +-------------------------+  |
-| - static/js/app.js|                        |  | Page Routes             |  |
-+-------------------+                        |  | /dashboard, /claims     |  |
-                                             |  +-------------------------+  |
-                                             |  +-------------------------+  |
-                                             |  | REST API Routes         |  |
-                                             |  | /api/policies*          |  |
-                                             |  | /api/claims*            |  |
-                                             |  +-------------------------+  |
-                                             |  +-------------------------+  |
-                                             |  | Validation & Mapping    |  |
-                                             |  | request -> SQL -> JSON  |  |
-                                             |  +-------------------------+  |
-                                             +-------------+-----------------+
-                                                           |
-                             +-----------------------------+------------------------------+
-                             |                                                            |
-                             v                                                            v
-                 +----------------------------+                              +----------------------------+
-                 | SQLite (data/insurewell.db)|                              | File Storage (uploads/)    |
-                 | tables: policies, claims   |                              | claim attachment binaries   |
-                 +----------------------------+                              +----------------------------+
++----------------------+      HTTP(S)       +--------------------------------+
+| React Frontend       | <----------------> | Spring Boot REST API           |
+| - Dashboard view     |                    |                                |
+| - Claims view        |                    |  +--------------------------+  |
+| - Axios clients      |                    |  | PolicyController         |  |
++----------------------+                    |  | /api/policies*           |  |
+                                            |  +--------------------------+  |
+                                            |  +--------------------------+  |
+                                            |  | ClaimController          |  |
+                                            |  | /api/claims*             |  |
+                                            |  +--------------------------+  |
+                                            |  +--------------------------+  |
+                                            |  | Services / Validation    |  |
+                                            |  | DTO mapping / JPA        |  |
+                                            |  +--------------------------+  |
+                                            +---------------+----------------+
+                                                            |
+                                                            v
+                                             +-------------------------------+
+                                             | H2 In-Memory Database          |
+                                             | tables: policies, claims       |
+                                             +-------------------------------+
 ```
 
 ## 4. Module Boundaries and Responsibilities
-### 4.1 Web Presentation Module
+### 4.1 Frontend Presentation Module
 Responsibilities:
-- Render dashboard and claims pages.
-- Provide initial data for templates.
-- Support query-driven filtering on claims page.
+- Render dashboard and claims experiences in React.
+- Fetch policy and claim data from REST endpoints.
+- Support client-side policy switching and claims filtering.
 
-Owned routes:
-- GET /
-- GET /dashboard
-- GET /claims
+Owned components:
+- `Dashboard`
+- `Claims`
+- `Navigation`
 
 ### 4.2 Claims API Module
 Responsibilities:
@@ -85,7 +82,7 @@ Owned routes:
 Responsibilities:
 - List, read, create, update, and delete policies.
 - Enforce required fields and business validations.
-- Cascade policy deletion to dependent claims at app layer.
+- Cascade policy deletion to dependent claims through the persistence layer.
 
 Owned routes:
 - GET /api/policies
@@ -96,36 +93,34 @@ Owned routes:
 
 ### 4.4 Persistence Module
 Responsibilities:
-- Manage SQLite connection lifecycle per request.
-- Enforce SQLite pragmas:
-  - WAL journal mode.
-  - Foreign keys enabled.
-- Seed initial sample data on first bootstrap.
+- Manage JPA repositories and entity persistence.
+- Use H2 for local development data storage.
+- Seed initial sample data on application startup.
 
 Primary functions:
-- get_db
-- close_db
-- init_db
+- `PolicyRepository`
+- `ClaimRepository`
+- `DataConfig`
 
 ### 4.5 Upload Storage Module
 Responsibilities:
 - Validate allowed file extensions.
-- Sanitize file names via secure filename handling.
-- Store uploads with timestamp-prefixed names to reduce collision risk.
+- Accept multipart file uploads for claim creation.
+- Persist attachment metadata with the claim record.
 
 ## 5. Data Flow
 ### 5.1 Dashboard and Claims Page Flow
-1. Browser requests page route.
-2. Flask route queries SQLite for policies and claims.
-3. Route maps rows to dict objects.
-4. Template rendered with server-side data context.
-5. Browser receives HTML and static assets.
+1. Browser loads the React application.
+2. React components request policies and claims from the backend API.
+3. Spring Boot controllers fetch entities via repositories.
+4. DTOs are returned as JSON payloads.
+5. React updates the UI with policy and claim state.
 
 ### 5.2 API Request Flow
 1. Client sends JSON or multipart request to REST endpoint.
 2. Route validates required fields and data types.
-3. Route executes SQL read/write transaction.
-4. Route commits on success for mutating operations.
+3. Controller delegates persistence to JPA repositories.
+4. Transaction commits on success for mutating operations.
 5. Route returns JSON payload and HTTP status.
 
 ### 5.3 Claims Upload Pipeline
@@ -141,10 +136,10 @@ Responsibilities:
    - extension must be one of pdf, jpg, jpeg, png
    - filename sanitized
    - binary saved to uploads directory with millisecond prefix
-5. Server inserts claim record into SQLite with:
+5. Server inserts claim record into H2 with:
    - generated claim id
    - status default Pending
-   - original uploaded file name (logical reference)
+   - uploaded file name metadata when present
 6. Server returns created claim JSON with status 201.
 
 ## 6. REST API Surface
@@ -188,7 +183,7 @@ Responsibilities:
 
 ### Observability expectations
 Current state:
-- Minimal explicit logging; relies primarily on Flask/Werkzeug default output.
+- Minimal explicit logging; relies primarily on Spring Boot default request and application logs.
 
 Recommended baseline enhancements:
 - Structured request logging with route, method, status, latency.
@@ -207,7 +202,7 @@ Recommended baseline enhancements:
 - Future phase should enforce role-based access and CSRF protections for browser workflows.
 
 ### Performance
-- SQLite with WAL mode is sufficient for low to moderate single-node load.
+- H2 is sufficient for local development and demos; a production database should replace it for shared environments.
 - Query patterns are straightforward and index usage should be reviewed as data grows.
 
 ### Reliability
@@ -215,10 +210,10 @@ Recommended baseline enhancements:
 - For multi-node deployment, move uploads to object storage.
 
 ## 9. Migration Notes
-Current schema is managed in-code via init_db and CREATE TABLE IF NOT EXISTS statements.
+Current schema is managed in-code through JPA entities and startup seed configuration.
 
 Migration strategy recommendations:
-1. Introduce explicit migration tool (for example Alembic or SQL migration scripts) before adding non-trivial schema changes.
+1. Introduce explicit migration tooling (for example Flyway or Liquibase) before adding non-trivial schema changes.
 2. Backfill scripts should be idempotent and environment-safe.
 3. Add schema version table to track upgrade state.
 
@@ -241,9 +236,9 @@ Migration strategy recommendations:
 
 ## 11. Design Decisions and Unresolved Questions
 ### Design decisions
-1. Keep monolithic Flask architecture for current scale and demo simplicity.
-2. Keep SQLite + local uploads for low operational overhead in MVP.
-3. Preserve server-rendered templates while exposing REST APIs for progressive enhancement.
+1. Keep the React + Spring Boot split architecture for current scale and demo simplicity.
+2. Keep H2-backed local development data for low operational overhead in MVP.
+3. Preserve REST-first APIs so the frontend can evolve independently.
 
 ### Unresolved questions
 1. Should claim attachments support secure download endpoint and virus scanning?
@@ -255,7 +250,7 @@ Migration strategy recommendations:
 
 | Feature | HLD module | Data entity |
 |---|---|---|
-| View dashboard and claims | Web Presentation Module | policies, claims |
+| View dashboard and claims | Frontend Presentation Module | policies, claims |
 | Submit claim with attachment | Claims API Module + Upload Storage Module | claims |
 | Update claim status | Claims API Module | claims |
 | Manage policy lifecycle | Policies API Module | policies, claims |
@@ -275,13 +270,13 @@ Migration strategy recommendations:
    - Acceptance criteria: Tests cover valid status updates plus 400/404 negative paths.
 
 3. Add request/response structured logging middleware.
-   - Files: app.py
+   - Files: src/backend/src/main/java/com/insurewell/controller/ApiController.java, src/backend/src/main/java/com/insurewell/config/
    - Effort: M
    - Risk: Medium
    - Acceptance criteria: Every request logs method, path, status, latency, and request id.
 
 4. Add upload hardening checks.
-   - Files: app.py, tests/test_claim_uploads.py
+   - Files: src/backend/src/main/java/com/insurewell/controller/ClaimController.java, src/backend/src/test/
    - Effort: M
    - Risk: Medium
    - Acceptance criteria: MIME validation and safe size checks are tested for pass/fail paths.

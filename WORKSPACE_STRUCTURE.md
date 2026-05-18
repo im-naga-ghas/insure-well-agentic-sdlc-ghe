@@ -133,8 +133,8 @@ python app.py         # Runs on http://localhost:5001
 ## 📦 Dependencies
 
 ### Modern Stack
-- **Backend:** Java 17+, Maven 3.8+, Spring Boot 3.1.5
-- **Frontend:** Node.js 16+, npm 8+, React 18
+- **Backend:** Java 17+, Maven 3.9+, Spring Boot 3.1.5
+- **Frontend:** Node.js 18+, npm 9+, React 18
 
 ### Legacy Stack
 - **Python:** 3.9+

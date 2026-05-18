@@ -4,8 +4,8 @@
 This document defines the current persistent entities, relationships, constraints, and migration guidance for InsureWell.
 
 ## 2. Physical Storage
-- Primary store: SQLite database at data/insurewell.db.
-- Auxiliary binary store: uploads directory for claim attachments.
+- Primary store: H2 in-memory database for local development.
+- Auxiliary attachment metadata is stored with claim records; uploaded files are optional in the current API.
 
 ## 3. Entity Model
 
@@ -105,7 +105,7 @@ Recommendations:
 
 ## 9. Migration Notes
 Current state:
-- Schema bootstrap performed in application code via CREATE TABLE IF NOT EXISTS.
+- Schema bootstrap is derived from the Spring Boot JPA model and startup configuration.
 
 Planned evolution:
 1. Introduce explicit versioned migrations.
@@ -134,7 +134,7 @@ Critical data-model test cases:
 Assumptions:
 1. Single-tenant data model for current MVP.
 2. Timestamps remain ISO-like text in UTC format.
-3. Data volume remains small enough for SQLite constraints.
+3. Data volume remains small enough for an in-memory H2 development store.
 
 Open questions:
 1. Should claim status history be modeled as a separate table?
