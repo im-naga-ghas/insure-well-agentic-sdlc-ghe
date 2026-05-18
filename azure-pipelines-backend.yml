@@ -5,6 +5,10 @@ pr:
   branches:
     include:
       - main
+  paths:
+    include:
+      - src/backend/**
+      - azure-pipelines-backend.yml
 
 pool:
   vmImage: ubuntu-latest
@@ -25,14 +29,3 @@ steps:
       mvn -B clean verify
     displayName: 'Build and test backend (Spring Boot)'
     workingDirectory: src/backend
-
-  - task: NodeTool@0
-    inputs:
-      versionSpec: '18.x'
-    displayName: 'Use Node.js 18'
-
-  - script: |
-      npm ci
-      npm run build
-    displayName: 'Install and build frontend (React)'
-    workingDirectory: src/frontend

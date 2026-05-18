@@ -10,7 +10,7 @@
 | 11:30 AM - 12:00 PM | Requirements Phase | Existing user stories sync between AZDO and GHE; how to use custom agents | Align backlog and working model across tools |
 | 12:00 PM - 12:30 PM | Coding Phase | Code delegation in GHE UI | Generate and update application code using delegated workflows |
 | 12:30 PM - 1:15 PM | Lunch | Lunch break | Refresh and reset |
-| 1:15 PM - 1:45 PM | Coding Phase | VS Code with custom agents; delete to cloud from VS Code | Continue implementation and cloud workflow from the editor |
+| 1:15 PM - 1:45 PM | Coding Phase | VS Code with custom agents; delegate to cloud from VS Code | Continue implementation and cloud workflow from the editor |
 | 1:45 PM - 2:15 PM | Code Review Phase | PR auto code review; CodeQL; human approval | Validate code quality and secure review flow before merge |
 | 2:15 PM - 2:30 PM | Pipeline Trigger | AZDO pipeline CI | Trigger and verify CI execution for the generated code |
 | 2:30 PM - 2:45 PM | Coffee Break | Coffee break | Short break |
