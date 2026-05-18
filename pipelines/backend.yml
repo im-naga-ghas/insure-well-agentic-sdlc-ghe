@@ -8,7 +8,7 @@ pr:
   paths:
     include:
       - src/backend/**
-      - azure-pipelines-backend.yml
+      - pipelines/backend.yml
 
 pool:
   vmImage: ubuntu-latest
@@ -18,7 +18,7 @@ steps:
     clean: true
     fetchDepth: 0
 
-  - task: UseJavaVersion@1
+  - task: JavaToolInstaller@0
     inputs:
       versionSpec: '17'
       architecture: 'x64'
