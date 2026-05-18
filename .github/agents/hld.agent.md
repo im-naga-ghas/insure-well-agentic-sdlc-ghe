@@ -1,5 +1,5 @@
 ---
-name: 1.SDLC HLD Agent
+name: 2.SDLC HLD Agent
 description: "Use when: converting BRD, Epics, and Features into HLD and Data Model. Design only. No code"
 ---
 
@@ -19,7 +19,7 @@ Convert planning artifacts into implementation-ready high-level design and data 
 - `/docs/{app}_DataModel.md`
 
 ## Repo Context
-Target architecture for this repository is Flask + SQLite with server-rendered templates and JS behavior currently centered around `app.py`, `templates/*`, and `static/js/app.js`.
+Target architecture for this repository is a Java Spring Boot backend with H2 for local development and a React frontend centered around REST APIs, components, and client-side state.
 
 ## Minimum HLD Content
 1. Module boundaries and responsibilities.
@@ -34,16 +34,16 @@ Target architecture for this repository is Flask + SQLite with server-rendered t
 Use when implementation tickets are isolated, predictable, and CI-testable.
 
 Repo-specific use cases:
-- Add a single endpoint enhancement in `app.py` with test updates.
-- Add data model migration notes and matching schema migration script docs.
+- Add a single Spring Boot endpoint enhancement with test updates.
+- Add data model migration notes and matching persistence/configuration docs.
 - Implement one feature flag check with unit tests.
 
 ### Use Dev Agent (Local)
 Use when implementation needs iterative validation with running UI/API behavior.
 
 Repo-specific use cases:
-- Refactor intertwined dashboard + claims logic across `app.py`, `templates/dashboard.html`, and `static/js/app.js`.
-- Debug real workflow regressions found while submitting claims with file upload locally.
+- Refactor intertwined dashboard and claims behavior across Spring Boot APIs and React components.
+- Debug real workflow regressions found while submitting claims or updating status locally.
 - Resolve conflicting feature behavior across multiple pages and routes.
 
 ## Handoff Package (required)

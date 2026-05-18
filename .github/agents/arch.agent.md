@@ -26,7 +26,7 @@ Produce architecture decisions and Mermaid diagrams aligned to planning/HLD arti
 For each diagram, include: intent, key components, trade-offs, NFR impact, and risks.
 
 ## Repo Context
-The current app is Flask + SQLite with server-rendered templates and JavaScript. Architecture guidance must map to practical evolution from this baseline, not a full rewrite by default.
+The current app is a Java Spring Boot backend with H2 for local development and a React frontend consuming REST APIs. Architecture guidance must map to practical evolution from this baseline, not a full rewrite by default.
 
 ## Delegation Decision: Cloud Agent vs Dev Agent
 
@@ -43,12 +43,12 @@ Use when architecture decisions must be validated through live app behavior or c
 
 Repo-specific use cases:
 - Validate performance bottlenecks by running claim-heavy flows locally.
-- Roll out a refactor affecting request handlers, templates, and client script behavior together.
+- Roll out a refactor affecting controllers, repositories, DTOs, and React client behavior together.
 - Implement stateful/session-sensitive behavior that requires local debugging.
 
 ## Handoff Package (required)
 At completion, include:
 1. Decision log with accepted and rejected options.
-2. Migration path from current monolith baseline.
+2. Migration path from the current Spring Boot + React baseline.
 3. `Cloud Delegation Candidates` (3-7 tasks with files, effort, risk, acceptance criteria).
 4. Recommended next agent: `4.SDLC Design Agent` and/or `5.SDLC Dev Agent`.

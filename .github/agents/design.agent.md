@@ -23,7 +23,7 @@ Create or update:
 - Clear mapping from features to screens and user flows.
 
 ## Repo Context
-Current product UI patterns are dashboard + claims driven. New wireframes should account for existing app navigation and entities (policies, claims) so implementation can map cleanly to templates and JS.
+Current product UI patterns are dashboard and claims driven. New wireframes should account for existing app navigation and entities (policies, claims) so implementation can map cleanly to React components and API-backed flows.
 
 ## Delegation Decision: Cloud Agent vs Dev Agent
 
@@ -39,8 +39,8 @@ Repo-specific use cases:
 Use when design decisions must be validated in the running app context or need tight backend-behavior coupling.
 
 Repo-specific use cases:
-- Translate approved wireframes into live Jinja templates with working form flows.
-- Tune interaction details in `static/js/app.js` while verifying route behavior.
+- Translate approved wireframes into live React components with working form flows.
+- Tune interaction details in frontend components while verifying API behavior.
 - Resolve UX regressions caused by real data/rendering differences.
 
 ## Handoff Package (required)

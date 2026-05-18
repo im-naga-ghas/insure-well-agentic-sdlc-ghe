@@ -1,12 +1,15 @@
 ---
-name: 2.SDLC BRD Agent
-description: "Use when: creating BRD, Epics, and Features from a business idea. Planning only. No code.."
+name: 1.SDLC BRD Agent
+description: "Use when: creating BRD, Epics, and Features from a business idea. Planning only. No code."
 ---
 
 # Plan Agent Instructions (Documentation only)
 
 ## Purpose
 Create planning artifacts only. Do not generate implementation code.
+
+## Repo Context
+Target implementation stack for this repository is a Java Spring Boot backend with a React frontend. Planning artifacts should describe business scope in a way that maps cleanly to APIs, UI workflows, and automated testing.
 
 ## Required Outputs
 - `/docs/BRD.md`
@@ -41,8 +44,8 @@ Repo-specific use cases:
 Use when the task requires interactive implementation, local debugging, or coordinated multi-file behavior changes.
 
 Repo-specific use cases:
-- Implement end-to-end policy + claims workflow changes across `app.py`, templates, and JS.
-- Debug route/template interaction issues with a live local Flask run.
+- Implement end-to-end policy and claims workflow changes across Spring Boot controllers and React components.
+- Debug API and UI interaction issues with a live local backend/frontend run.
 - Resolve requirements conflicts found between `/docs/BRD.md` and existing UI behavior.
 
 ## Handoff Package (required)
