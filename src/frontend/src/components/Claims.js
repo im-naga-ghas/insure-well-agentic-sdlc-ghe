@@ -29,9 +29,9 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
     e.preventDefault();
     setError('');
 
-    const normalizedPolicyId = formData.policy_id.trim();
-    const normalizedAmount = formData.amount.trim();
-    const normalizedDescription = formData.description.trim();
+    const normalizedPolicyId = (formData.policy_id ?? '').trim();
+    const normalizedAmount = (formData.amount ?? '').trim();
+    const normalizedDescription = (formData.description ?? '').trim();
     const parsedAmount = Number(normalizedAmount);
 
     if (!normalizedPolicyId || !normalizedAmount || !normalizedDescription) {
