@@ -65,16 +65,19 @@ public class ClaimController {
       @RequestParam Double amount,
       @RequestParam String description) {
 
+    String normalizedPolicyId = policy_id == null ? null : policy_id.trim();
+    String normalizedDescription = description == null ? null : description.trim();
+
     // Validate input
-    if (policy_id == null || policy_id.trim().isEmpty()
-        || amount == null || amount <= 0
-        || description == null || description.trim().isEmpty()) {
+    if (normalizedPolicyId == null || normalizedPolicyId.isEmpty()
+        || amount == null || !Double.isFinite(amount) || amount <= 0
+        || normalizedDescription == null || normalizedDescription.isEmpty()) {
       return ResponseEntity.badRequest()
         .body(Map.of("error", "policy_id, amount, and description are required"));
     }
 
     // Check if policy exists
-    if (!policyRepository.existsById(policy_id)) {
+    if (!policyRepository.existsById(normalizedPolicyId)) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
         .body(Map.of("error", "Policy not found"));
     }
@@ -84,9 +87,9 @@ public class ClaimController {
 
     Claim claim = Claim.builder()
       .id(claimId)
-      .policyId(policy_id)
+      .policyId(normalizedPolicyId)
       .amount(amount)
-      .description(description)
+      .description(normalizedDescription)
       .status("Pending")
       .fileName(null) // File upload would be handled separately
       .submittedAt(now)

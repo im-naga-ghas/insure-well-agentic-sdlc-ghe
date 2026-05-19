@@ -29,12 +29,16 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
     e.preventDefault();
     setError('');
 
-    if (!formData.policy_id || !formData.amount || !formData.description) {
+    const normalizedPolicyId = formData.policy_id.trim();
+    const normalizedDescription = formData.description.trim();
+    const parsedAmount = Number(formData.amount);
+
+    if (!normalizedPolicyId || formData.amount === '' || !normalizedDescription) {
       setError('All fields are required');
       return;
     }
 
-    if (parseFloat(formData.amount) <= 0) {
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       setError('Amount must be greater than 0');
       return;
     }
@@ -42,9 +46,9 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
     try {
       setSubmitting(true);
       const payload = new FormData();
-      payload.append('policy_id', formData.policy_id);
-      payload.append('amount', String(parseFloat(formData.amount)));
-      payload.append('description', formData.description);
+      payload.append('policy_id', normalizedPolicyId);
+      payload.append('amount', String(parsedAmount));
+      payload.append('description', normalizedDescription);
 
       await axios.post(`${apiBase}/claims`, payload);
       setShowForm(false);
