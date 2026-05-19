@@ -26,11 +26,13 @@ import java.util.List;
 @Configuration
 public class DataConfig {
 
-  /** Override via application property seed.admin.password or env SEED_ADMIN_PASSWORD */
+  /** Override via application property seed.admin.password
+   *  or environment variable SEED_ADMIN_PASSWORD (Spring Boot relaxed binding) */
   @Value("${seed.admin.password:admin123}")
   private String adminPassword;
 
-  /** Override via application property seed.policyholder.password or env SEED_POLICYHOLDER_PASSWORD */
+  /** Override via application property seed.policyholder.password
+   *  or environment variable SEED_POLICYHOLDER_PASSWORD (Spring Boot relaxed binding) */
   @Value("${seed.policyholder.password:holder123}")
   private String policyholderPassword;
 

@@ -41,7 +41,8 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    // Restrict origins to localhost for development; override jwt.cors.allowed-origins in production
+    // Restrict origins to localhost for development; override with 'jwt.cors.allowed-origins'
+    // environment variable or application property in production
     config.setAllowedOrigins(List.of(
         "http://localhost:3000",
         "http://localhost:8080"
