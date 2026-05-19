@@ -21,11 +21,13 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/policies")
-@CrossOrigin(origins = "*")
 public class PolicyController {
 
   @Autowired
   private PolicyRepository policyRepository;
+
+  @Autowired
+  private UserProfiles userProfiles;
 
   private boolean isAdmin(Authentication authentication) {
     return authentication.getAuthorities().stream()
@@ -33,7 +35,7 @@ public class PolicyController {
   }
 
   private boolean isOwner(Authentication authentication, Policy policy) {
-    return UserProfiles.holderNameFor(authentication.getName())
+    return userProfiles.holderNameFor(authentication.getName())
       .map(holderName -> holderName.equals(policy.getHolderName()))
       .orElse(false);
   }
@@ -68,7 +70,7 @@ public class PolicyController {
   public ResponseEntity<List<PolicyDTO>> getAllPolicies(Authentication authentication) {
     List<Policy> source = isAdmin(authentication)
       ? policyRepository.findAllByOrderByCreatedAtAsc()
-      : UserProfiles.holderNameFor(authentication.getName())
+      : userProfiles.holderNameFor(authentication.getName())
       .map(policyRepository::findByHolderNameOrderByCreatedAtAsc)
       .orElse(List.of());
 
@@ -115,7 +117,7 @@ public class PolicyController {
         if (!isAdmin(authentication) && !isOwner(authentication, existing)) {
           return ResponseEntity.status(HttpStatus.FORBIDDEN).<PolicyDTO>build();
         }
-        if (policyDTO.getHolderName() != null) {
+        if (policyDTO.getHolderName() != null && isAdmin(authentication)) {
           existing.setHolderName(policyDTO.getHolderName());
         }
         if (policyDTO.getPlanName() != null) {
@@ -145,7 +147,7 @@ public class PolicyController {
     if (policy == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
-    if (!isAdmin(authentication) && !isOwner(authentication, policy)) {
+    if (!isAdmin(authentication)) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
     policyRepository.deleteById(id);

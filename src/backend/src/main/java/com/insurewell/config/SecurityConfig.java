@@ -56,9 +56,13 @@ public class SecurityConfig {
         new AntPathRequestMatcher("/h2-console/**")
       ))
       .cors(Customizer.withDefaults())
+      .headers(headers -> headers
+        .frameOptions(frameOptions -> frameOptions.sameOrigin())
+      )
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(new AntPathRequestMatcher("/**", "OPTIONS")).permitAll()
         .requestMatchers(new AntPathRequestMatcher("/api/health")).permitAll()
+        .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll()
         .anyRequest().authenticated()
       )
       .httpBasic(Customizer.withDefaults());

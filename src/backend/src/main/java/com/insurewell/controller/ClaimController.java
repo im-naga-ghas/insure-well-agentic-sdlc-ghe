@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/claims")
-@CrossOrigin(origins = "*")
 public class ClaimController {
 
   @Autowired
@@ -33,13 +32,16 @@ public class ClaimController {
   @Autowired
   private PolicyRepository policyRepository;
 
+  @Autowired
+  private UserProfiles userProfiles;
+
   private boolean isAdmin(Authentication authentication) {
     return authentication.getAuthorities().stream()
       .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
   }
 
   private boolean canAccessPolicy(Authentication authentication, Policy policy) {
-    return isAdmin(authentication) || UserProfiles.holderNameFor(authentication.getName())
+    return isAdmin(authentication) || userProfiles.holderNameFor(authentication.getName())
       .map(holderName -> holderName.equals(policy.getHolderName()))
       .orElse(false);
   }
@@ -75,7 +77,7 @@ public class ClaimController {
       return ResponseEntity.ok(claims);
     }
 
-    Set<String> userPolicyIds = UserProfiles.holderNameFor(authentication.getName())
+    Set<String> userPolicyIds = userProfiles.holderNameFor(authentication.getName())
       .map(policyRepository::findByHolderNameOrderByCreatedAtAsc)
       .orElse(List.of())
       .stream()
