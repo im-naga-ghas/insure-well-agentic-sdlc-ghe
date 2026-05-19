@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
+import { getAuthHeader } from '../services/authService';
 
-function Dashboard({ policies, claims, onRefresh, apiBase }) {
+function Dashboard({ policies, claims, onRefresh, apiBase, user }) {
+  const isAdmin = user?.role === 'ADMIN';
   const [selectedPolicyId, setSelectedPolicyId] = useState(policies[0]?.id || null);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
@@ -67,10 +69,11 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
     }
 
     try {
+      const headers = getAuthHeader();
       if (modalMode === 'add') {
-        await axios.post(`${apiBase}/policies`, formData);
+        await axios.post(`${apiBase}/policies`, formData, { headers });
       } else {
-        await axios.patch(`${apiBase}/policies/${selectedPolicyId}`, formData);
+        await axios.patch(`${apiBase}/policies/${selectedPolicyId}`, formData, { headers });
       }
       setShowPolicyModal(false);
       onRefresh();
@@ -82,7 +85,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
   const handleDeletePolicy = async (id, name) => {
     if (window.confirm(`Delete policy for "${name}"? All claims will be deleted.`)) {
       try {
-        await axios.delete(`${apiBase}/policies/${id}`);
+        await axios.delete(`${apiBase}/policies/${id}`, { headers: getAuthHeader() });
         onRefresh();
       } catch (err) {
         alert('Failed to delete policy');
@@ -97,9 +100,11 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
           <h1>Policy Dashboard</h1>
           <p data-testid="policy-count">{policies.length} polic{policies.length === 1 ? 'y' : 'ies'} on your account</p>
         </div>
-        <button className="btn btn-primary" onClick={openAddModal} data-testid="add-policy-btn">
-          + Add Policy
-        </button>
+        {isAdmin && (
+          <button className="btn btn-primary" onClick={openAddModal} data-testid="add-policy-btn">
+            + Add Policy
+          </button>
+        )}
       </div>
 
       {selectedPolicy && (
@@ -114,22 +119,24 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
               >
                 <span>{policy.holderName}</span>
                 <span className="policy-id">{policy.id}</span>
-                <div className="tab-actions">
-                  <button
-                    className="edit-btn"
-                    onClick={(e) => { e.stopPropagation(); openEditModal(policy); }}
-                    data-testid={`edit-policy-btn-${policy.id}`}
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="delete-btn"
-                    onClick={(e) => { e.stopPropagation(); handleDeletePolicy(policy.id, policy.holderName); }}
-                    data-testid={`delete-policy-btn-${policy.id}`}
-                  >
-                    🗑️
-                  </button>
-                </div>
+                {isAdmin && (
+                  <div className="tab-actions">
+                    <button
+                      className="edit-btn"
+                      onClick={(e) => { e.stopPropagation(); openEditModal(policy); }}
+                      data-testid={`edit-policy-btn-${policy.id}`}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="delete-btn"
+                      onClick={(e) => { e.stopPropagation(); handleDeletePolicy(policy.id, policy.holderName); }}
+                      data-testid={`delete-policy-btn-${policy.id}`}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -219,7 +226,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
         </>
       )}
 
-      {showPolicyModal && (
+      {isAdmin && showPolicyModal && (
         <div className="modal-overlay" onClick={() => setShowPolicyModal(false)} data-testid="modal-overlay">
           <div className="modal-content" onClick={e => e.stopPropagation()} data-testid="policy-modal">
             <h2>{modalMode === 'add' ? 'Add Policy' : 'Edit Policy'}</h2>

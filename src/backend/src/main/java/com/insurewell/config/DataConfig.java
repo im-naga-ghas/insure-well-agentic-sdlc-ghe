@@ -1,12 +1,16 @@
 package com.insurewell.config;
 
+import com.insurewell.model.AppUser;
 import com.insurewell.model.Claim;
 import com.insurewell.model.Policy;
 import com.insurewell.repository.ClaimRepository;
 import com.insurewell.repository.PolicyRepository;
+import com.insurewell.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -27,9 +31,29 @@ public class DataConfig {
     return LocalDateTime.parse(s.replace("Z", ""), DateTimeFormatter.ISO_DATE_TIME);
   }
 
+  @Autowired
+  private PasswordEncoder passwordEncoder;
+
   @Bean
-  public CommandLineRunner loadData(PolicyRepository policyRepo, ClaimRepository claimRepo) {
+  public CommandLineRunner loadData(PolicyRepository policyRepo, ClaimRepository claimRepo, UserRepository userRepo) {
     return args -> {
+      // Seed users if empty
+      if (userRepo.count() == 0) {
+        userRepo.saveAll(List.of(
+            AppUser.builder()
+                .id("USR-001")
+                .username("admin")
+                .password(passwordEncoder.encode("admin123"))
+                .role("ADMIN")
+                .build(),
+            AppUser.builder()
+                .id("USR-002")
+                .username("policyholder")
+                .password(passwordEncoder.encode("holder123"))
+                .role("POLICYHOLDER")
+                .build()
+        ));
+      }
       // Only seed if empty
       if (policyRepo.count() == 0) {
         LocalDateTime now = LocalDateTime.now(ZoneId.of("UTC"));
