@@ -32,7 +32,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
     const normalizedPolicyId = formData.policy_id.trim();
     const normalizedAmount = formData.amount.trim();
     const normalizedDescription = formData.description.trim();
-    const parsedAmount = Number(formData.amount);
+    const parsedAmount = Number(normalizedAmount);
 
     if (!normalizedPolicyId || !normalizedAmount || !normalizedDescription) {
       setError('All fields are required');
