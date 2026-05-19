@@ -30,10 +30,11 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
     setError('');
 
     const normalizedPolicyId = formData.policy_id.trim();
+    const normalizedAmount = formData.amount.trim();
     const normalizedDescription = formData.description.trim();
     const parsedAmount = Number(formData.amount);
 
-    if (!normalizedPolicyId || formData.amount === '' || !normalizedDescription) {
+    if (!normalizedPolicyId || !normalizedAmount || !normalizedDescription) {
       setError('All fields are required');
       return;
     }
