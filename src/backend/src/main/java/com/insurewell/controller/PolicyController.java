@@ -3,9 +3,11 @@ package com.insurewell.controller;
 import com.insurewell.dto.PolicyDTO;
 import com.insurewell.model.Policy;
 import com.insurewell.repository.PolicyRepository;
+import com.insurewell.security.UserProfiles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -24,6 +26,17 @@ public class PolicyController {
 
   @Autowired
   private PolicyRepository policyRepository;
+
+  private boolean isAdmin(Authentication authentication) {
+    return authentication.getAuthorities().stream()
+      .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+  }
+
+  private boolean isOwner(Authentication authentication, Policy policy) {
+    return UserProfiles.holderNameFor(authentication.getName())
+      .map(holderName -> holderName.equals(policy.getHolderName()))
+      .orElse(false);
+  }
 
   private PolicyDTO toDTO(Policy policy) {
     return PolicyDTO.builder()
@@ -52,8 +65,14 @@ public class PolicyController {
   }
 
   @GetMapping
-  public ResponseEntity<List<PolicyDTO>> getAllPolicies() {
-    List<PolicyDTO> policies = policyRepository.findAllByOrderByCreatedAtAsc()
+  public ResponseEntity<List<PolicyDTO>> getAllPolicies(Authentication authentication) {
+    List<Policy> source = isAdmin(authentication)
+      ? policyRepository.findAllByOrderByCreatedAtAsc()
+      : UserProfiles.holderNameFor(authentication.getName())
+      .map(policyRepository::findByHolderNameOrderByCreatedAtAsc)
+      .orElse(List.of());
+
+    List<PolicyDTO> policies = source
       .stream()
       .map(this::toDTO)
       .collect(Collectors.toList());
@@ -61,14 +80,23 @@ public class PolicyController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<PolicyDTO> getPolicyById(@PathVariable String id) {
+  public ResponseEntity<PolicyDTO> getPolicyById(@PathVariable String id, Authentication authentication) {
     return policyRepository.findById(id)
-      .map(policy -> ResponseEntity.ok(toDTO(policy)))
+      .map(policy -> {
+        if (isAdmin(authentication) || isOwner(authentication, policy)) {
+          return ResponseEntity.ok(toDTO(policy));
+        }
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).<PolicyDTO>build();
+      })
       .orElse(ResponseEntity.notFound().build());
   }
 
   @PostMapping
-  public ResponseEntity<PolicyDTO> createPolicy(@RequestBody PolicyDTO policyDTO) {
+  public ResponseEntity<PolicyDTO> createPolicy(@RequestBody PolicyDTO policyDTO, Authentication authentication) {
+    if (!isAdmin(authentication)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
     if (policyDTO.getHolderName() == null || policyDTO.getHolderName().trim().isEmpty()
         || policyDTO.getPlanName() == null || policyDTO.getPlanName().trim().isEmpty()
         || policyDTO.getCoverageAmount() == null || policyDTO.getCoverageAmount() <= 0) {
@@ -81,9 +109,12 @@ public class PolicyController {
   }
 
   @PatchMapping("/{id}")
-  public ResponseEntity<PolicyDTO> updatePolicy(@PathVariable String id, @RequestBody PolicyDTO policyDTO) {
+  public ResponseEntity<PolicyDTO> updatePolicy(@PathVariable String id, @RequestBody PolicyDTO policyDTO, Authentication authentication) {
     return policyRepository.findById(id)
       .map(existing -> {
+        if (!isAdmin(authentication) && !isOwner(authentication, existing)) {
+          return ResponseEntity.status(HttpStatus.FORBIDDEN).<PolicyDTO>build();
+        }
         if (policyDTO.getHolderName() != null) {
           existing.setHolderName(policyDTO.getHolderName());
         }
@@ -109,12 +140,16 @@ public class PolicyController {
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> deletePolicy(@PathVariable String id) {
-    if (policyRepository.existsById(id)) {
-      policyRepository.deleteById(id);
-      return ResponseEntity.noContent().build();
+  public ResponseEntity<Void> deletePolicy(@PathVariable String id, Authentication authentication) {
+    Policy policy = policyRepository.findById(id).orElse(null);
+    if (policy == null) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
-    return ResponseEntity.notFound().build();
+    if (!isAdmin(authentication) && !isOwner(authentication, policy)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+    policyRepository.deleteById(id);
+    return ResponseEntity.noContent().build();
   }
 
 }

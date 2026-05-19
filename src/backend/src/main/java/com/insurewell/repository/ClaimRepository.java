@@ -13,4 +13,5 @@ import java.util.List;
 public interface ClaimRepository extends JpaRepository<Claim, String> {
   List<Claim> findByPolicyIdOrderBySubmittedAtDesc(String policyId);
   List<Claim> findAllByOrderBySubmittedAtDesc();
+  List<Claim> findByPolicyIdInOrderBySubmittedAtDesc(List<String> policyIds);
 }

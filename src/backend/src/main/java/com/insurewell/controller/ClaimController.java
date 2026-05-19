@@ -2,16 +2,20 @@ package com.insurewell.controller;
 
 import com.insurewell.dto.ClaimDTO;
 import com.insurewell.model.Claim;
+import com.insurewell.model.Policy;
 import com.insurewell.repository.ClaimRepository;
 import com.insurewell.repository.PolicyRepository;
+import com.insurewell.security.UserProfiles;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -29,6 +33,17 @@ public class ClaimController {
   @Autowired
   private PolicyRepository policyRepository;
 
+  private boolean isAdmin(Authentication authentication) {
+    return authentication.getAuthorities().stream()
+      .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+  }
+
+  private boolean canAccessPolicy(Authentication authentication, Policy policy) {
+    return isAdmin(authentication) || UserProfiles.holderNameFor(authentication.getName())
+      .map(holderName -> holderName.equals(policy.getHolderName()))
+      .orElse(false);
+  }
+
   private ClaimDTO toDTO(Claim claim) {
     return ClaimDTO.builder()
       .id(claim.getId())
@@ -43,15 +58,43 @@ public class ClaimController {
   }
 
   @GetMapping
-  public ResponseEntity<List<ClaimDTO>> getClaims(@RequestParam(required = false) String policy_id) {
+  public ResponseEntity<List<ClaimDTO>> getClaims(@RequestParam(required = false) String policy_id, Authentication authentication) {
     List<ClaimDTO> claims;
+    if (isAdmin(authentication)) {
+      if (policy_id != null && !policy_id.isEmpty()) {
+        claims = claimRepository.findByPolicyIdOrderBySubmittedAtDesc(policy_id)
+          .stream()
+          .map(this::toDTO)
+          .collect(Collectors.toList());
+      } else {
+        claims = claimRepository.findAllByOrderBySubmittedAtDesc()
+          .stream()
+          .map(this::toDTO)
+          .collect(Collectors.toList());
+      }
+      return ResponseEntity.ok(claims);
+    }
+
+    Set<String> userPolicyIds = UserProfiles.holderNameFor(authentication.getName())
+      .map(policyRepository::findByHolderNameOrderByCreatedAtAsc)
+      .orElse(List.of())
+      .stream()
+      .map(Policy::getId)
+      .collect(Collectors.toSet());
+
+    if (policy_id != null && !policy_id.isEmpty() && !userPolicyIds.contains(policy_id)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
     if (policy_id != null && !policy_id.isEmpty()) {
       claims = claimRepository.findByPolicyIdOrderBySubmittedAtDesc(policy_id)
         .stream()
         .map(this::toDTO)
         .collect(Collectors.toList());
     } else {
-      claims = claimRepository.findAllByOrderBySubmittedAtDesc()
+      claims = userPolicyIds.isEmpty()
+        ? List.of()
+        : claimRepository.findByPolicyIdInOrderBySubmittedAtDesc(List.copyOf(userPolicyIds))
         .stream()
         .map(this::toDTO)
         .collect(Collectors.toList());
@@ -63,7 +106,8 @@ public class ClaimController {
   public ResponseEntity<?> createClaim(
       @RequestParam String policy_id,
       @RequestParam Double amount,
-      @RequestParam String description) {
+      @RequestParam String description,
+      Authentication authentication) {
 
     // Validate input
     if (policy_id == null || policy_id.trim().isEmpty()
@@ -73,10 +117,14 @@ public class ClaimController {
         .body(Map.of("error", "policy_id, amount, and description are required"));
     }
 
-    // Check if policy exists
-    if (!policyRepository.existsById(policy_id)) {
+    Policy policy = policyRepository.findById(policy_id).orElse(null);
+    if (policy == null) {
       return ResponseEntity.status(HttpStatus.NOT_FOUND)
         .body(Map.of("error", "Policy not found"));
+    }
+    if (!canAccessPolicy(authentication, policy)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(Map.of("error", "Access denied"));
     }
 
     LocalDateTime now = LocalDateTime.now();
@@ -100,7 +148,12 @@ public class ClaimController {
   @PatchMapping("/{id}/status")
   public ResponseEntity<?> updateClaimStatus(
       @PathVariable String id,
-      @RequestBody Map<String, String> body) {
+      @RequestBody Map<String, String> body,
+      Authentication authentication) {
+    if (!isAdmin(authentication)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN)
+        .body(Map.of("error", "Only admins can update claim status"));
+    }
 
     String status = body.get("status");
     if (status == null || (!status.equals("Pending") && !status.equals("Approved") && !status.equals("Rejected"))) {
@@ -119,17 +172,20 @@ public class ClaimController {
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> deleteClaim(@PathVariable String id) {
-    if (claimRepository.existsById(id)) {
-      claimRepository.deleteById(id);
-      return ResponseEntity.noContent().build();
+  public ResponseEntity<Void> deleteClaim(@PathVariable String id, Authentication authentication) {
+    Claim claim = claimRepository.findById(id).orElse(null);
+    if (claim == null) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
-    return ResponseEntity.notFound().build();
-  }
-
-  @GetMapping("/health")
-  public ResponseEntity<Map<String, String>> health() {
-    return ResponseEntity.ok(Map.of("status", "ok"));
+    Policy policy = policyRepository.findById(claim.getPolicyId()).orElse(null);
+    if (policy == null) {
+      return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+    }
+    if (!canAccessPolicy(authentication, policy)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+    claimRepository.deleteById(id);
+    return ResponseEntity.noContent().build();
   }
 
 }
