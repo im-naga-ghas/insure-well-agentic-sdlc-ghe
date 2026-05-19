@@ -264,7 +264,7 @@ Migration strategy recommendations:
    - Acceptance criteria: OpenAPI validates and covers all current API routes/status codes.
 
 2. Add automated API contract tests for claims status transitions.
-   - Files: tests/test_claim_status_api.py
+   - Files: src/backend/src/test/java/com/insurewell/ClaimStatusApiTest.java
    - Effort: S
    - Risk: Low
    - Acceptance criteria: Tests cover valid status updates plus 400/404 negative paths.

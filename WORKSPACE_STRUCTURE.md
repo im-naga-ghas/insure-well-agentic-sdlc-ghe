@@ -1,11 +1,11 @@
 # InsureWell Workspace Organization
 
-## 📁 Current Structure (after reorganization)
+## 📁 Project Structure
 
 ```
 insure-well-agentic-sdlc-ghe/
 │
-├── 🆕 src/                          ← NEW: Modern React + Spring Boot Stack
+├── src/                             ← React + Spring Boot Stack
 │   ├── backend/                     (Spring Boot 3, Java 17, REST API)
 │   │   ├── pom.xml
 │   │   └── src/main/java/com/insurewell/
@@ -29,20 +29,6 @@ insure-well-agentic-sdlc-ghe/
 │   ├── run.sh                       (Startup script)
 │   └── .gitignore
 │
-├── 📦 legacy/                       ← MOVED: Flask Python Stack (original)
-│   ├── app.py                       (Flask main app)
-│   ├── requirements.txt             (Python dependencies)
-│   ├── templates/                   (Jinja2 HTML templates)
-│   │   ├── base.html
-│   │   ├── dashboard.html
-│   │   └── claims.html
-│   ├── static/                      (CSS & JavaScript)
-│   │   ├── css/style.css
-│   │   └── js/app.js
-│   ├── data/                        (SQLite database)
-│   │   └── insurewell.db
-│   └── uploads/                     (Uploaded documents)
-│
 ├── docs/                            (Project documentation)
 │   ├── InsureWell_DataModel.md
 │   └── InsureWell_HLD.md
@@ -61,15 +47,13 @@ insure-well-agentic-sdlc-ghe/
 │
 ├── README.md                        (Main project README)
 ├── Agenda.md                        (Project agenda)
-├── azure-pipelines.yml              (CI/CD configuration)
 └── .gitignore
 ```
 
 ---
 
-## 🚀 Running the Applications
+## 🚀 Running the Application
 
-### Modern Stack (React + Spring Boot)
 ```bash
 cd src
 ./run.sh              # Starts both backend (8080) & frontend (3000)
@@ -87,44 +71,25 @@ npm install
 npm start             # Runs on http://localhost:3000
 ```
 
-### Legacy Stack (Flask)
-```bash
-cd legacy
-source ../.venv/bin/activate
-pip install -r requirements.txt
-python app.py         # Runs on http://localhost:5001
-```
-
 ---
 
-## 📊 Technology Comparison
+## 🛠 Technology Stack
 
-| Aspect | Legacy (Flask) | Modern (React + Spring Boot) |
-|--------|----------------|------------------------------|
-| **Backend** | Python Flask | Java Spring Boot 3 |
-| **Frontend** | Jinja2 + Vanilla JS | React 18 |
-| **Database** | SQLite | H2 (in-memory, dev) |
-| **API Style** | REST + HTML rendering | REST (JSON) |
-| **Package Manager** | pip | Maven + npm |
-| **Port** | 5001 | Backend: 8080, Frontend: 3000 |
-| **Status** | Stable, archived | Active development |
-
----
-
-## 📝 Key Changes
-
-✅ **Created:** `src/` folder with complete React + Spring Boot stack  
-✅ **Moved:** All Flask Python code to `legacy/` folder  
-✅ **Preserved:** Project documentation in `docs/`, `handbook/`, `images/`  
-✅ **Maintained:** CI/CD config (`azure-pipelines.yml`), git history
+| Aspect | Details |
+|--------|---------|
+| **Backend** | Java Spring Boot 3 |
+| **Frontend** | React 18 |
+| **Database** | H2 (in-memory, dev) |
+| **API Style** | REST (JSON) |
+| **Package Manager** | Maven + npm |
+| **Ports** | Backend: 8080, Frontend: 3000 |
 
 ---
 
 ## 🔗 Documentation
 
-- **src/README.md** — Full architecture, API docs, setup instructions for modern stack
-- **src/QUICKSTART.md** — Fast startup guide for React + Spring Boot
-- **legacy/README.md** — (If exists) Legacy Flask documentation
+- **src/README.md** — Full architecture, API docs, setup instructions
+- **src/QUICKSTART.md** — Fast startup guide
 - **docs/** — Data models and architecture diagrams
 - **handbook/** — Setup guides and workflow documentation
 
@@ -132,24 +97,9 @@ python app.py         # Runs on http://localhost:5001
 
 ## 📦 Dependencies
 
-### Modern Stack
 - **Backend:** Java 17+, Maven 3.9+, Spring Boot 3.1.5
 - **Frontend:** Node.js 18+, npm 9+, React 18
 
-### Legacy Stack
-- **Python:** 3.9+
-- **Dependencies:** Flask, sqlite3 (see `legacy/requirements.txt`)
-
 ---
 
-## 🎯 Next Steps
-
-1. **Development:** Use `src/` for all new features (React + Spring Boot)
-2. **Reference:** Consult `legacy/` if you need Flask implementation details
-3. **Migration:** Gradually migrate legacy features to modern stack
-4. **Testing:** Each stack can be tested independently
-
----
-
-**Last Updated:** May 11, 2026  
-**Status:** Workspace successfully reorganized with legacy code archived
+**Last Updated:** May 19, 2026
