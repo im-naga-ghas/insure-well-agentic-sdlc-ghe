@@ -41,7 +41,11 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration config = new CorsConfiguration();
-    config.setAllowedOriginPatterns(List.of("*"));
+    // Restrict origins to localhost for development; override jwt.cors.allowed-origins in production
+    config.setAllowedOrigins(List.of(
+        "http://localhost:3000",
+        "http://localhost:8080"
+    ));
     config.setAllowedMethods(List.of("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"));
     config.setAllowedHeaders(List.of("*"));
     config.setAllowCredentials(true);
@@ -54,6 +58,8 @@ public class SecurityConfig {
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     http
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        // CSRF disabled intentionally: this is a stateless REST API using JWT Bearer tokens.
+        // No session cookies are used, so CSRF attacks do not apply.
         .csrf(csrf -> csrf.disable())
         .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(auth -> auth

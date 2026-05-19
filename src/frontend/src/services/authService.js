@@ -11,8 +11,21 @@ export function getToken() {
 }
 
 export function getUser() {
-  const raw = localStorage.getItem(USER_KEY);
-  return raw ? JSON.parse(raw) : null;
+  try {
+    const raw = localStorage.getItem(USER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null
+        || typeof parsed.username !== 'string'
+        || typeof parsed.role !== 'string') {
+      clearAuth();
+      return null;
+    }
+    return parsed;
+  } catch {
+    clearAuth();
+    return null;
+  }
 }
 
 export function clearAuth() {

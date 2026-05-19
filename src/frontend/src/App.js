@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './App.css';
 import Navigation from './components/Navigation';
@@ -17,15 +17,14 @@ function App() {
   const [error, setError] = useState(null);
   const [user, setUser] = useState(() => getUser());
 
-  useEffect(() => {
-    if (user) {
-      fetchData();
-    } else {
-      setLoading(false);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const handleLogout = useCallback(() => {
+    clearAuth();
+    setUser(null);
+    setPolicies([]);
+    setClaims([]);
+  }, []);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const headers = getAuthHeader();
@@ -46,21 +45,18 @@ function App() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [handleLogout]);
 
-  const refreshData = () => {
-    fetchData();
-  };
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    } else {
+      setLoading(false);
+    }
+  }, [user, fetchData]);
 
   const handleLogin = (loggedInUser) => {
     setUser(loggedInUser);
-  };
-
-  const handleLogout = () => {
-    clearAuth();
-    setUser(null);
-    setPolicies([]);
-    setClaims([]);
   };
 
   if (!user) {
@@ -97,7 +93,7 @@ function App() {
           <Dashboard
             policies={policies}
             claims={claims}
-            onRefresh={refreshData}
+            onRefresh={fetchData}
             apiBase={API_BASE_URL}
             user={user}
           />
@@ -106,7 +102,7 @@ function App() {
           <Claims
             policies={policies}
             claims={claims}
-            onRefresh={refreshData}
+            onRefresh={fetchData}
             apiBase={API_BASE_URL}
             user={user}
           />

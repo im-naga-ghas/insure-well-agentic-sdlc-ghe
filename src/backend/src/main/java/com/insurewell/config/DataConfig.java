@@ -7,6 +7,7 @@ import com.insurewell.repository.ClaimRepository;
 import com.insurewell.repository.PolicyRepository;
 import com.insurewell.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,9 +20,19 @@ import java.util.List;
 /**
  * Database Configuration & Seed Data
  * Auto-seeds the database with sample policies and claims on application startup.
+ * Demo user passwords can be overridden via seed.admin.password and seed.policyholder.password
+ * application properties (or environment variables SEED_ADMIN_PASSWORD / SEED_POLICYHOLDER_PASSWORD).
  */
 @Configuration
 public class DataConfig {
+
+  /** Override via application property seed.admin.password or env SEED_ADMIN_PASSWORD */
+  @Value("${seed.admin.password:admin123}")
+  private String adminPassword;
+
+  /** Override via application property seed.policyholder.password or env SEED_POLICYHOLDER_PASSWORD */
+  @Value("${seed.policyholder.password:holder123}")
+  private String policyholderPassword;
 
   private static String toIsoString(LocalDateTime dt) {
     return dt.format(DateTimeFormatter.ISO_DATE_TIME) + "Z";
@@ -43,13 +54,13 @@ public class DataConfig {
             AppUser.builder()
                 .id("USR-001")
                 .username("admin")
-                .password(passwordEncoder.encode("admin123"))
+                .password(passwordEncoder.encode(adminPassword))
                 .role("ADMIN")
                 .build(),
             AppUser.builder()
                 .id("USR-002")
                 .username("policyholder")
-                .password(passwordEncoder.encode("holder123"))
+                .password(passwordEncoder.encode(policyholderPassword))
                 .role("POLICYHOLDER")
                 .build()
         ));
