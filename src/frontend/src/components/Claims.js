@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import '../styles/Claims.css';
+import { getAuthHeader } from '../services/authService';
 
-function Claims({ policies, claims, onRefresh, apiBase }) {
+function Claims({ policies, claims, onRefresh, apiBase, user }) {
+  const isAdmin = user?.role === 'ADMIN';
   const [filterPolicyId, setFilterPolicyId] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -46,7 +48,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
       payload.append('amount', String(parseFloat(formData.amount)));
       payload.append('description', formData.description);
 
-      await axios.post(`${apiBase}/claims`, payload);
+      await axios.post(`${apiBase}/claims`, payload, { headers: getAuthHeader() });
       setShowForm(false);
       setFormData({
         policy_id: policies[0]?.id || '',
@@ -63,7 +65,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
 
   const handleStatusChange = async (claimId, newStatus) => {
     try {
-      await axios.patch(`${apiBase}/claims/${claimId}/status`, { status: newStatus });
+      await axios.patch(`${apiBase}/claims/${claimId}/status`, { status: newStatus }, { headers: getAuthHeader() });
       onRefresh();
     } catch (err) {
       alert('Failed to update claim status');
@@ -73,7 +75,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
   const handleDeleteClaim = async (claimId) => {
     if (window.confirm('Delete this claim?')) {
       try {
-        await axios.delete(`${apiBase}/claims/${claimId}`);
+        await axios.delete(`${apiBase}/claims/${claimId}`, { headers: getAuthHeader() });
         onRefresh();
       } catch (err) {
         alert('Failed to delete claim');
@@ -184,7 +186,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
                 <th>Amount</th>
                 <th>Status</th>
                 <th>Submitted</th>
-                <th>Action</th>
+                {isAdmin && <th>Action</th>}
               </tr>
             </thead>
             <tbody>
@@ -195,27 +197,35 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
                   <td>{claim.description}</td>
                   <td>${claim.amount.toLocaleString()}</td>
                   <td>
-                    <select
-                      value={claim.status}
-                      onChange={e => handleStatusChange(claim.id, e.target.value)}
-                      className={`status-select status-${claim.status.toLowerCase()}`}
-                      data-testid={`claim-status-${claim.id}`}
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Approved">Approved</option>
-                      <option value="Rejected">Rejected</option>
-                    </select>
+                    {isAdmin ? (
+                      <select
+                        value={claim.status}
+                        onChange={e => handleStatusChange(claim.id, e.target.value)}
+                        className={`status-select status-${claim.status.toLowerCase()}`}
+                        data-testid={`claim-status-${claim.id}`}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    ) : (
+                      <span className={`status-badge status-${claim.status.toLowerCase()}`}>
+                        {claim.status}
+                      </span>
+                    )}
                   </td>
                   <td>{new Date(claim.submittedAt).toLocaleDateString()}</td>
-                  <td>
-                    <button
-                      className="delete-btn-small"
-                      onClick={() => handleDeleteClaim(claim.id)}
-                      data-testid={`delete-claim-${claim.id}`}
-                    >
-                      🗑️
-                    </button>
-                  </td>
+                  {isAdmin && (
+                    <td>
+                      <button
+                        className="delete-btn-small"
+                        onClick={() => handleDeleteClaim(claim.id)}
+                        data-testid={`delete-claim-${claim.id}`}
+                      >
+                        🗑️
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
