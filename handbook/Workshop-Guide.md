@@ -32,6 +32,8 @@ This workshop shows you how to use **GitHub Copilot agents** to automate every p
 
 **You do not need prior AI or agent experience.** Each step is explained from scratch.
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## 2. Prerequisites
@@ -76,6 +78,8 @@ npm --version         # 9+
 
 > **Stuck on prerequisites?** See the [detailed prerequisites guide](setup/1.Prerequisites.md) for step-by-step instructions including how to create a GitHub PAT.
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## 3. Clone, Build & Run the App
@@ -116,6 +120,8 @@ npm start
 curl http://localhost:8080/api/policies   # should return a JSON array of policies
 curl http://localhost:3000                # should return an HTML page
 ```
+
+[↑ Back to top](#table-of-contents)
 
 ---
 
@@ -170,6 +176,8 @@ npx playwright install chromium
 
 Only needed for the ADO integration segment. See [Azure DevOps MCP setup](https://github.com/mcp/microsoft/azure-devops-mcp) for instructions, and [2.Azure-DevOps-Setup.md](setup/2.Azure-DevOps-Setup.md) for connecting ADO to GitHub.
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## 5. Custom Agents
@@ -197,6 +205,8 @@ Only needed for the ADO integration segment. See [Azure DevOps MCP setup](https:
 
 Or add a `.agent.md` file directly under `.github/agents/`.
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## 6. Agent Delegation Modes
@@ -212,6 +222,8 @@ Choose the right mode depending on how you want to work:
 **Rule of thumb:** Local = interactive, now. Cloud = offload, async. GitHub Issue = track, team.
 
 > See [Copilot Agent Delegation Guide](guides/4.Copilot-Agent-Delegation-Guide.md) for detailed examples and a decision guide.
+
+[↑ Back to top](#table-of-contents)
 
 ---
 
@@ -300,6 +312,8 @@ Clone & Run → MCP Setup → Custom Agents
 
 > For a detailed walkthrough with exact prompts and expected outputs for each step, see [Demo Flow Guide](guides/5.Demo-Flow.md).
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## 8. Agentic SDLC Workflow (Visual)
@@ -329,6 +343,8 @@ The following sequence shows how each automated step connects:
 
 > See [Agentic SDLC Workflow Guide](guides/3.Understand_Workflow.md) for the full visual step-by-step breakdown.
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## 9. Playwright MCP Workshop
@@ -354,6 +370,8 @@ The following sequence shows how each automated step connects:
 
 > See [Playwright MCP Setup Guide](guides/6.playwright-mcp-setup-working.md) for the full selector reference, all tool names, and guided exercises.
 
+[↑ Back to top](#table-of-contents)
+
 ---
 
 ## 10. Reference Links
@@ -373,3 +391,5 @@ The following sequence shows how each automated step connects:
 | Agent Delegation Guide | guides/4.Copilot-Agent-Delegation-Guide.md |
 | Demo Flow (detailed) | guides/5.Demo-Flow.md |
 | Playwright MCP Guide | guides/6.playwright-mcp-setup-working.md |
+
+[↑ Back to top](#table-of-contents)
