@@ -10,8 +10,8 @@
 2. [Prerequisites](#2-prerequisites)
 3. [Clone, Build & Run the App](#3-clone-build--run-the-app)
 4. [MCP Server Setup](#4-mcp-server-setup)
-5. [Custom Agents](#5-custom-agents)
-6. [Agent Delegation Modes](#6-agent-delegation-modes)
+5. [Custom Agents](#5-agent-delegation-modes)
+6. [Agent Delegation Modes](#6-custom-agents)
 7. [Demo Flow — Step by Step](#7-demo-flow--step-by-step)
 8. [Agentic SDLC Workflow (Visual)](#8-agentic-sdlc-workflow-visual)
 9. [Playwright MCP Workshop](#9-playwright-mcp-workshop)
@@ -191,7 +191,25 @@ Only needed for the ADO integration segment. See [Azure DevOps MCP setup](https:
 
 ---
 
-## 5. Custom Agents
+## 5. Agent Delegation Modes
+
+Choose the right mode depending on how you want to work:
+
+| Mode | When to use | How it works |
+|---|---|---|
+| **Local Agent** (Agent Mode in VS Code) | Interactive coding, debugging, refactoring | Sees your workspace, terminal, and uncommitted changes; you steer every step |
+| **Cloud Agent** (from VS Code) | Async task handoff while you keep coding | Copilot works in the background; results appear as a PR |
+| **GitHub Issue → Copilot** | Tracked backlog work | Assign an issue to Copilot on GitHub.com; the issue description drives implementation |
+
+**Rule of thumb:** Local = interactive, now. Cloud = offload, async. GitHub Issue = track, team.
+
+> See [Copilot Agent Delegation Guide](guides/4.Copilot-Agent-Delegation-Guide.md) for detailed examples and a decision guide.
+
+[↑ Back to top](#table-of-contents)
+
+---
+
+## 6. Custom Agents
 
 > **What are custom agents?** Custom agents are `.agent.md` files in `.github/agents/`. Each agent has a focused role (like a specialist on your team) and tailored instructions. You invoke them by name in Copilot Chat.
 
@@ -215,24 +233,6 @@ Only needed for the ADO integration segment. See [Azure DevOps MCP setup](https:
 ```
 
 Or add a `.agent.md` file directly under `.github/agents/`.
-
-[↑ Back to top](#table-of-contents)
-
----
-
-## 6. Agent Delegation Modes
-
-Choose the right mode depending on how you want to work:
-
-| Mode | When to use | How it works |
-|---|---|---|
-| **Local Agent** (Agent Mode in VS Code) | Interactive coding, debugging, refactoring | Sees your workspace, terminal, and uncommitted changes; you steer every step |
-| **Cloud Agent** (from VS Code) | Async task handoff while you keep coding | Copilot works in the background; results appear as a PR |
-| **GitHub Issue → Copilot** | Tracked backlog work | Assign an issue to Copilot on GitHub.com; the issue description drives implementation |
-
-**Rule of thumb:** Local = interactive, now. Cloud = offload, async. GitHub Issue = track, team.
-
-> See [Copilot Agent Delegation Guide](guides/4.Copilot-Agent-Delegation-Guide.md) for detailed examples and a decision guide.
 
 [↑ Back to top](#table-of-contents)
 
