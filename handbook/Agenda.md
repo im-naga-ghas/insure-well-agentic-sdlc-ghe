@@ -11,8 +11,8 @@
 | --- | --- | --- | --- |
 | 10:00 AM – 10:30 AM | **Prerequisites & Setup** | Verify tools (Java, Node.js, VS Code, extensions) and GitHub access | Confirmed environment — everything ready to run |
 | 10:30 AM – 11:00 AM | **MCP Setup** | Install and configure GitHub MCP server in VS Code | Copilot agents can talk to GitHub APIs directly |
-| 11:00 AM – 11:30 AM | **Requirements Phase** | Use BRD agent to generate user stories from the app | A prioritized backlog of features ready to implement |
-| 11:30 AM – 12:00 PM | **Requirements Phase** | Sync stories to GitHub Issues; learn how to use custom agents | Issues in the backlog and agents ready to use |
+| 11:00 AM – 11:30 AM | **Requirements Phase-1** | Sync stories to GitHub Issues; learn how to use custom agents | Issues in the backlog and agents ready to use |
+| 11:30 AM – 12:00 PM | **Requirements Phase-2** | Use BRD agent to generate user stories from the app | A prioritized backlog of features ready to implement |
 | 12:00 PM – 12:30 PM | **Coding Phase** | Delegate a feature to Copilot from the GitHub UI | A pull request created by the coding agent |
 | 12:30 PM – 1:15 PM | **Lunch** | Lunch break | — |
 | 1:15 PM – 1:45 PM | **Coding Phase** | Use custom agents from VS Code; delegate a task to cloud agent | Further feature PRs; hands-on with VS Code agent mode |
