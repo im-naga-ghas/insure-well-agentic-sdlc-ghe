@@ -20,5 +20,5 @@
 | 2:15 PM – 2:30 PM | **Pipeline Trigger** | Trigger Azure DevOps CI pipeline *(optional)* | Verified CI execution for generated code |
 | 2:30 PM – 2:45 PM | **Coffee Break** | Short break | — |
 | 2:45 PM – 3:15 PM | **GHAS** | Review AI findings, Dependabot alerts, and secret scanning results | Understanding of GitHub Advanced Security in practice |
-| 3:15 PM – 3:30 PM | **QA Test Automation** | Use QA agent to create test cases and a test suite | Automated test coverage for the generated feature |
+| 3:15 PM – 3:30 PM | **QA Test Automation+Playwright** | Use QA agent to create test cases and a test suite | Automated test coverage for the generated feature |
 | 3:30 PM – 4:00 PM | **Local App Run** | Run the complete application locally; end-to-end demo | Working app with AI-generated features running on your laptop |
