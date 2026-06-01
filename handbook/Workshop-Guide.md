@@ -13,9 +13,8 @@
 5. [Custom Agents](#5-agent-delegation-modes)
 6. [Agent Delegation Modes](#6-custom-agents)
 7. [Demo Flow — Step by Step](#7-demo-flow--step-by-step)
-8. [Agentic SDLC Workflow (Visual)](#8-agentic-sdlc-workflow-visual)
-9. [Playwright MCP Workshop](#9-playwright-mcp-workshop)
-10. [Reference Links](#10-reference-links)
+8. [Playwright MCP Workshop](#8-playwright-mcp-workshop)
+9. [Reference Links](#9-reference-links)
 
 ---
 
@@ -30,7 +29,7 @@ This workshop shows you how to use **GitHub Copilot agents** to automate every p
 - Use specialized agents (BRD, HLD, Dev, QA) to generate requirements, design, code, and tests
 - Review and merge an AI-generated pull request
 
-**You do not need prior AI or agent experience.** Each step is explained from scratch.
+[Understand the workflow](guides/3.Understand_Workflow.md) (Visual)
 
 [↑ Back to top](#table-of-contents)
 
@@ -320,45 +319,19 @@ Clone & Run → MCP Setup → Custom Agents
   → Dev/Cloud Agent → QA Agent → Review → Merge
   → Repeat for next story
 ```
+---
+### Step 7 — Validate the pipeline status
 
+Verify th AzDo pipelines invoked or not( CI pipelines should be triggered on PR creation)
+
+---
 > For a detailed walkthrough with exact prompts and expected outputs for each step, see [Demo Flow Guide](guides/5.Demo-Flow.md).
 
 [↑ Back to top](#table-of-contents)
 
 ---
 
-## 8. Agentic SDLC Workflow (Visual)
-
-The following sequence shows how each automated step connects:
-
-1. **Request Flow** — A GitHub issue triggers agent processing and code generation  
-   ![Request Flow](../images/0_0.request%20flow.png)
-
-2. **Service Connection** — Secure link between GitHub and Azure DevOps  
-   ![Service Connection](../images/0_1.service_connection.png)
-
-3. **Copilot Code Review** — Automated review begins on the generated PR  
-   ![Copilot Code Review](../images/0_2_copilot%20code%20review_.png)
-
-4. **Status Checks** — CI/CD pipeline validations run  
-   ![Status Checks](../images/0_status%20checks.png)
-
-5. **Draft PR → Ready for Review → Fix & Commit → Merge**  
-   ![Draft PR](../images/3_draft%20pull%20request.png)
-
-**Key outcomes:**
-- Automated issue-to-PR workflow
-- Continuous code review feedback
-- Self-fixing via Copilot delegation
-- Reduced manual review cycles
-
-> See [Agentic SDLC Workflow Guide](guides/3.Understand_Workflow.md) for the full visual step-by-step breakdown.
-
-[↑ Back to top](#table-of-contents)
-
----
-
-## 9. Playwright MCP Workshop
+## 8. Playwright MCP Workshop
 
 > **What is this?** After the app is running, you can use Playwright MCP browser tools to validate UI behavior interactively from Copilot Chat — no need to write test code first.
 
@@ -385,7 +358,7 @@ The following sequence shows how each automated step connects:
 
 ---
 
-## 10. Reference Links
+## 9. Reference Links
 
 | Resource | Link |
 |---|---|
