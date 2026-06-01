@@ -14,7 +14,8 @@
 6. [Agent Delegation Modes](#6-custom-agents)
 7. [Demo Flow — Step by Step](#7-demo-flow--step-by-step)
 8. [Playwright MCP Workshop](#8-playwright-mcp-workshop)
-9. [Reference Links](#9-reference-links)
+9. [GHAS Setup Review](#9-ghas-setup-review)
+10. [Reference Links](#10-reference-links)
 
 ---
 
@@ -358,7 +359,17 @@ Verify th AzDo pipelines invoked or not( CI pipelines should be triggered on PR 
 
 ---
 
-## 9. Reference Links
+## 9. GHAS Setup Review
+
+1. Review and triage AI-generated security findings.
+2. Review and remediate Dependabot vulnerability alerts.
+3. Review secret scanning alerts and rotate exposed credentials.
+
+[↑ Back to top](#table-of-contents)
+
+---
+
+## 10. Reference Links
 
 | Resource | Link |
 |---|---|
