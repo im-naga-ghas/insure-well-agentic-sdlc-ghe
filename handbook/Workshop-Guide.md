@@ -143,11 +143,22 @@ curl http://localhost:3000                # should return an HTML page
 
 ```json
 {
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "github-pat",
+      "description": "GitHub Personal Access Token",
+      "password": true
+    }
+  ],
   "servers": {
     "github": {
       "type": "stdio",
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${input:github-pat}"
       }
