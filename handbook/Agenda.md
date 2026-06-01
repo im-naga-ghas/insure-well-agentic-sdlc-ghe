@@ -1,19 +1,24 @@
 # Agenda
 
-**Tech Stack:** React UI + Java Spring Boot backend
+**Tech Stack:** React UI + Java Spring Boot backend  
+**Full workshop guide:** [Workshop-Guide.md](Workshop-Guide.md)
 
-| Time | Phase | Agenda Items | Expected Output |
+> **New participants:** Complete the [Prerequisites Checklist](setup/1.Prerequisites.md) before 10:00 AM.
+
+---
+
+| Time | Phase | What Happens | What You Walk Away With |
 | --- | --- | --- | --- |
-| 10:00 AM - 10:30 AM | Prerequisites Setup | Prerequisites setup | Confirm environment readiness and required access |
-| 10:30 AM - 11:00 AM | MCP SetUp | MCP discovery, installation, and configuration | Establish MCP tooling needed for the session |
-| 11:00 AM - 11:30 AM | Requirements Phase | User stories from BRD | Confirm scope and story breakdown |
-| 11:30 AM - 12:00 PM | Requirements Phase | Existing user stories sync between AZDO and GHE; how to use custom agents | Align backlog and working model across tools |
-| 12:00 PM - 12:30 PM | Coding Phase | Code delegation in GHE UI | Generate and update application code using delegated workflows |
-| 12:30 PM - 1:15 PM | Lunch | Lunch break | Refresh and reset |
-| 1:15 PM - 1:45 PM | Coding Phase | VS Code with custom agents; delegate to cloud from VS Code | Continue implementation and cloud workflow from the editor |
-| 1:45 PM - 2:15 PM | Code Review Phase | PR auto code review; CodeQL; human approval | Validate code quality and secure review flow before merge |
-| 2:15 PM - 2:30 PM | Pipeline Trigger | AZDO pipeline CI | Trigger and verify CI execution for the generated code |
-| 2:30 PM - 2:45 PM | Coffee Break | Coffee break | Short break |
-| 2:45 PM - 3:15 PM | GHAS | AI findings; Dependabot; secret scanning | Review security and dependency insights from GitHub Advanced Security |
-| 3:15 PM - 3:30 PM | QA Test Automation | Create test cases; create test suite | Prepare automated test coverage for the generated application |
-| 3:30 PM - 4:00 PM | Local App Run | End of day we should be able to run the application which was generated | Confirm the app runs locally and the end-to-end flow is working |
+| 10:00 AM – 10:30 AM | **Prerequisites & Setup** | Verify tools (Java, Node.js, VS Code, extensions) and GitHub access | Confirmed environment — everything ready to run |
+| 10:30 AM – 11:00 AM | **MCP Setup** | Install and configure GitHub MCP server in VS Code | Copilot agents can talk to GitHub APIs directly |
+| 11:00 AM – 11:30 AM | **Requirements Phase-1** | Sync stories to GitHub Issues; learn how to use custom agents | Issues in the backlog and agents ready to use |
+| 11:30 AM – 12:00 PM | **Requirements Phase-2** | Use BRD agent to generate user stories from the app | A prioritized backlog of features ready to implement |
+| 12:00 PM – 12:30 PM | **Coding Phase** | Delegate a feature to Copilot from the GitHub UI | A pull request created by the coding agent |
+| 12:30 PM – 1:15 PM | **Lunch** | Lunch break | — |
+| 1:15 PM – 1:45 PM | **Coding Phase** | Use custom agents from VS Code; delegate a task to cloud agent | Further feature PRs; hands-on with VS Code agent mode |
+| 1:45 PM – 2:15 PM | **Code Review Phase** | PR auto code review, CodeQL scan, and human approval | A reviewed and merged PR |
+| 2:15 PM – 2:30 PM | **Pipeline Trigger** | Trigger Azure DevOps CI pipeline *(optional)* | Verified CI execution for generated code |
+| 2:30 PM – 2:45 PM | **Coffee Break** | Short break | — |
+| 2:45 PM – 3:15 PM | **GHAS** | Review AI findings, Dependabot alerts, and secret scanning results | Understanding of GitHub Advanced Security in practice |
+| 3:15 PM – 3:30 PM | **QA Test Automation+Playwright** | Use QA agent to create test cases and a test suite | Automated test coverage for the generated feature |
+| 3:30 PM – 4:00 PM | **Local App Run** | Run the complete application locally; end-to-end demo | Working app with AI-generated features running on your laptop |
