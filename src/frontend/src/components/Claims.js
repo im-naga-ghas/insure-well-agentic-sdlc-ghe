@@ -66,7 +66,8 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
     e.preventDefault();
 
     const clientErrors = validateForm();
-    if (Object.keys(clientErrors).length > 0 || Object.values(fieldErrors).some(Boolean)) {
+    const hasFileError = Boolean(fieldErrors.file);
+    if (Object.keys(clientErrors).length > 0 || hasFileError) {
       setFieldErrors(prev => ({ ...prev, ...clientErrors }));
       return;
     }

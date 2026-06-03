@@ -70,7 +70,7 @@ class ClaimValidationServiceTest {
   }
 
   @Test
-  void inactivePolicy_returns422Error() {
+  void inactivePolicy_returnsError() {
     Policy inactive = Policy.builder()
         .id("POL-999")
         .holderName("Bob")

@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -119,11 +118,15 @@ public class ClaimValidationService {
       return;
     }
     try {
-      byte[] header = file.getBytes();
-      if (!isAllowedMimeType(header)) {
+      byte[] header = new byte[MAGIC_PNG.length];
+      int bytesRead;
+      try (java.io.InputStream is = file.getInputStream()) {
+        bytesRead = is.read(header, 0, header.length);
+      }
+      if (bytesRead < 1 || !isAllowedMimeType(header)) {
         errors.put("file", "Only PDF, JPG, JPEG, and PNG files are accepted");
       }
-    } catch (IOException e) {
+    } catch (java.io.IOException e) {
       errors.put("file", "Could not read uploaded file");
     }
   }
