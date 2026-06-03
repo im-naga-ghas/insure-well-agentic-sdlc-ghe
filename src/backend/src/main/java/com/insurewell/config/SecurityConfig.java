@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -38,10 +39,15 @@ public class SecurityConfig {
     return http
       .csrf(AbstractHttpConfigurer::disable)
       .cors(Customizer.withDefaults())
+      .headers(headers -> headers.frameOptions(frameOptions -> frameOptions.sameOrigin()))
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(auth -> auth
-        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-        .requestMatchers("/api", "/api/health").permitAll()
+        .requestMatchers(AntPathRequestMatcher.antMatcher(HttpMethod.OPTIONS, "/**")).permitAll()
+        .requestMatchers(
+          AntPathRequestMatcher.antMatcher("/api"),
+          AntPathRequestMatcher.antMatcher("/api/health"),
+          AntPathRequestMatcher.antMatcher("/h2-console/**")
+        ).permitAll()
         .anyRequest().authenticated())
       .httpBasic(Customizer.withDefaults())
       .build();

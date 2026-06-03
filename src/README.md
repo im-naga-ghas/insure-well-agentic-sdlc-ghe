@@ -216,12 +216,13 @@ Valid values: `Pending`, `Approved`, `Rejected`.
 
 ### Get all policies
 ```bash
-curl http://localhost:8080/api/policies
+curl -u alex:policy123 http://localhost:8080/api/policies
 ```
 
 ### Create a policy
 ```bash
 curl -X POST http://localhost:8080/api/policies \
+  -u admin:admin123 \
   -H "Content-Type: application/json" \
   -d '{
     "holderName": "Jane Doe",
@@ -236,6 +237,7 @@ curl -X POST http://localhost:8080/api/policies \
 ### Submit a claim
 ```bash
 curl -X POST http://localhost:8080/api/claims \
+  -u alex:policy123 \
   -F "policy_id=POL-2024-001" \
   -F "amount=500" \
   -F "description=Urgent care visit"
@@ -244,13 +246,15 @@ curl -X POST http://localhost:8080/api/claims \
 ### Update claim status
 ```bash
 curl -X PATCH http://localhost:8080/api/claims/CLM-1715787000000/status \
+  -u admin:admin123 \
   -H "Content-Type: application/json" \
   -d '{"status": "Approved"}'
 ```
 
 ## Development Notes
 
-- **CORS:** Backend has CORS enabled for `*` origins (change in `ClaimController` and `PolicyController` for production)
+- **Auth:** API access to policies and claims now requires HTTP Basic authentication. Demo users: `alex/policy123`, `maria/policy123`, `david/policy123`, and `admin/admin123`
+- **CORS:** Backend only allows configured origins via `app.cors.allowed-origins` (defaults to `http://localhost:3000`)
 - **Database:** Switch from H2 to PostgreSQL by adding the driver dependency and updating `application.properties`
 - **File Uploads:** Currently stubbed in claims creation; implement by adding multipart file handling in `ClaimController`
 - **Error Handling:** Global exception handler can be added via `@ControllerAdvice`
