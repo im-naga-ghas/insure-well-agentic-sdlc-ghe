@@ -1,7 +1,7 @@
 import React from 'react';
 import '../styles/Navigation.css';
 
-function Navigation({ currentPage, setCurrentPage }) {
+function Navigation({ currentPage, setCurrentPage, currentUser, onLogout }) {
   return (
     <nav className="navbar" data-testid="navbar">
       <div className="navbar-brand">
@@ -27,6 +27,15 @@ function Navigation({ currentPage, setCurrentPage }) {
           </button>
         </li>
       </ul>
+      <div className="nav-session">
+        <div className="nav-user-meta">
+          <strong>{currentUser.username}</strong>
+          <span className="role-pill">{currentUser.role}</span>
+        </div>
+        <button className="nav-link nav-link-secondary" onClick={onLogout} data-testid="logout-btn">
+          Logout
+        </button>
+      </div>
     </nav>
   );
 }

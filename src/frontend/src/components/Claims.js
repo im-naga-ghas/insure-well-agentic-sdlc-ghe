@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/Claims.css';
 
-function Claims({ policies, claims, onRefresh, apiBase }) {
+function Claims({ policies, claims, onRefresh, apiBase, authConfig, currentUser }) {
   const [filterPolicyId, setFilterPolicyId] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({
@@ -12,6 +12,14 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const canManageClaims = currentUser.role === 'admin';
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      policy_id: prev.policy_id || policies[0]?.id || '',
+    }));
+  }, [policies]);
 
   const filteredClaims = filterPolicyId
     ? claims.filter(c => c.policyId === filterPolicyId)
@@ -46,7 +54,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
       payload.append('amount', String(parseFloat(formData.amount)));
       payload.append('description', formData.description);
 
-      await axios.post(`${apiBase}/claims`, payload);
+      await axios.post(`${apiBase}/claims`, payload, authConfig);
       setShowForm(false);
       setFormData({
         policy_id: policies[0]?.id || '',
@@ -63,20 +71,20 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
 
   const handleStatusChange = async (claimId, newStatus) => {
     try {
-      await axios.patch(`${apiBase}/claims/${claimId}/status`, { status: newStatus });
+      await axios.patch(`${apiBase}/claims/${claimId}/status`, { status: newStatus }, authConfig);
       onRefresh();
     } catch (err) {
-      alert('Failed to update claim status');
+      alert('Failed to update claim status. This action requires admin access.');
     }
   };
 
   const handleDeleteClaim = async (claimId) => {
     if (window.confirm('Delete this claim?')) {
       try {
-        await axios.delete(`${apiBase}/claims/${claimId}`);
+        await axios.delete(`${apiBase}/claims/${claimId}`, authConfig);
         onRefresh();
       } catch (err) {
-        alert('Failed to delete claim');
+        alert('Failed to delete claim. This action requires admin access.');
       }
     }
   };
@@ -95,6 +103,12 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
         >
           {showForm ? '✕ Cancel' : '+ New Claim'}
         </button>
+      </div>
+
+      <div className="info-banner" data-testid="claims-role-note">
+        {canManageClaims
+          ? 'Admins can review every claim, update statuses, and delete claim records.'
+          : 'Policyholders can submit claims and view only claims tied to their own policy.'}
       </div>
 
       {showForm && (
@@ -158,17 +172,19 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
       <div className="section">
         <div className="section-header">
           <h2>Submitted Claims</h2>
-          <div className="filter-wrap">
-            <label>Filter by policy:</label>
-            <select value={filterPolicyId} onChange={e => setFilterPolicyId(e.target.value)} data-testid="filter-policy">
-              <option value="">All Policies</option>
-              {policies.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.id} — {p.holderName}
-                </option>
-              ))}
-            </select>
-          </div>
+          {canManageClaims && (
+            <div className="filter-wrap">
+              <label>Filter by policy:</label>
+              <select value={filterPolicyId} onChange={e => setFilterPolicyId(e.target.value)} data-testid="filter-policy">
+                <option value="">All Policies</option>
+                {policies.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.id} — {p.holderName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <span className="claims-count" data-testid="claims-count">{filteredClaims.length} claim{filteredClaims.length !== 1 ? 's' : ''}</span>
         </div>
 
@@ -184,7 +200,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
                 <th>Amount</th>
                 <th>Status</th>
                 <th>Submitted</th>
-                <th>Action</th>
+                {canManageClaims && <th>Action</th>}
               </tr>
             </thead>
             <tbody>
@@ -195,27 +211,35 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
                   <td>{claim.description}</td>
                   <td>${claim.amount.toLocaleString()}</td>
                   <td>
-                    <select
-                      value={claim.status}
-                      onChange={e => handleStatusChange(claim.id, e.target.value)}
-                      className={`status-select status-${claim.status.toLowerCase()}`}
-                      data-testid={`claim-status-${claim.id}`}
-                    >
-                      <option value="Pending">Pending</option>
-                      <option value="Approved">Approved</option>
-                      <option value="Rejected">Rejected</option>
-                    </select>
+                    {canManageClaims ? (
+                      <select
+                        value={claim.status}
+                        onChange={e => handleStatusChange(claim.id, e.target.value)}
+                        className={`status-select status-${claim.status.toLowerCase()}`}
+                        data-testid={`claim-status-${claim.id}`}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Approved">Approved</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    ) : (
+                      <span className={`status-select status-${claim.status.toLowerCase()} status-readonly`}>
+                        {claim.status}
+                      </span>
+                    )}
                   </td>
                   <td>{new Date(claim.submittedAt).toLocaleDateString()}</td>
-                  <td>
-                    <button
-                      className="delete-btn-small"
-                      onClick={() => handleDeleteClaim(claim.id)}
-                      data-testid={`delete-claim-${claim.id}`}
-                    >
-                      🗑️
-                    </button>
-                  </td>
+                  {canManageClaims && (
+                    <td>
+                      <button
+                        className="delete-btn-small"
+                        onClick={() => handleDeleteClaim(claim.id)}
+                        data-testid={`delete-claim-${claim.id}`}
+                      >
+                        🗑️
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

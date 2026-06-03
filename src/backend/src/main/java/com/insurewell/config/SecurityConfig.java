@@ -1,0 +1,87 @@
+package com.insurewell.config;
+
+import com.insurewell.security.AuthenticatedUser;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+  private final String allowedOrigins;
+
+  public SecurityConfig(@Value("${app.cors.allowed-origins:http://localhost:3000}") String allowedOrigins) {
+    this.allowedOrigins = allowedOrigins;
+  }
+
+  @Bean
+  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    return http
+      .csrf(AbstractHttpConfigurer::disable)
+      .cors(Customizer.withDefaults())
+      .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+      .authorizeHttpRequests(auth -> auth
+        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+        .requestMatchers("/api", "/api/health").permitAll()
+        .anyRequest().authenticated())
+      .httpBasic(Customizer.withDefaults())
+      .build();
+  }
+
+  @Bean
+  public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
+    Map<String, AuthenticatedUser> users = Map.of(
+      "admin", new AuthenticatedUser("admin", passwordEncoder.encode("admin123"), "ADMIN", null),
+      "alex", new AuthenticatedUser("alex", passwordEncoder.encode("policy123"), "POLICYHOLDER", "POL-2024-001"),
+      "maria", new AuthenticatedUser("maria", passwordEncoder.encode("policy123"), "POLICYHOLDER", "POL-2024-002"),
+      "david", new AuthenticatedUser("david", passwordEncoder.encode("policy123"), "POLICYHOLDER", "POL-2023-009")
+    );
+    return username -> {
+      AuthenticatedUser user = users.get(username);
+      if (user == null) {
+        throw new UsernameNotFoundException("Unknown user: " + username);
+      }
+      return user;
+    };
+  }
+
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+  }
+
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource() {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+      .map(String::trim)
+      .filter(origin -> !origin.isEmpty())
+      .toList());
+    configuration.setAllowedMethods(List.of("GET", "POST", "PATCH", "DELETE", "OPTIONS"));
+    configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+    configuration.setExposedHeaders(List.of("WWW-Authenticate"));
+
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+  }
+}

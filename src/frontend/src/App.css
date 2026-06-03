@@ -16,6 +16,31 @@ html, body {
   min-height: 100vh;
 }
 
+.login-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.login-card {
+  width: min(420px, 100%);
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 12px 30px rgba(26, 84, 144, 0.15);
+}
+
+.login-card h1 {
+  margin-bottom: 0.75rem;
+}
+
+.login-card p {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+
 .main-content {
   flex: 1;
   padding: 2rem;
@@ -37,6 +62,24 @@ html, body {
   padding: 1rem;
   border-radius: 4px;
   margin-bottom: 1rem;
+}
+
+.info-banner {
+  background-color: #eef5ff;
+  color: #1a5490;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  border: 1px solid #cfe1fb;
+}
+
+.account-summary {
+  background-color: #f5f8fc;
+  border: 1px solid #dde7f4;
+  border-radius: 4px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  color: #244261;
 }
 
 /* Buttons */
@@ -66,6 +109,11 @@ html, body {
 
 .btn-secondary:hover {
   background-color: #999;
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 /* Badge */
