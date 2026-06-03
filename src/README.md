@@ -254,6 +254,7 @@ curl -X PATCH http://localhost:8080/api/claims/CLM-1715787000000/status \
 ## Development Notes
 
 - **Auth:** API access to policies and claims now requires HTTP Basic authentication. Demo users: `alex/policy123`, `maria/policy123`, `david/policy123`, and `admin/admin123`
+- **CSRF:** Mutating API requests require the CSRF token returned by `GET /api/auth/csrf`
 - **CORS:** Backend only allows configured origins via `app.cors.allowed-origins` (defaults to `http://localhost:3000`)
 - **Database:** Switch from H2 to PostgreSQL by adding the driver dependency and updating `application.properties`
 - **File Uploads:** Currently stubbed in claims creation; implement by adding multipart file handling in `ClaimController`

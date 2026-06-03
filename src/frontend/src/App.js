@@ -19,6 +19,7 @@ function App() {
   const [claims, setClaims] = useState([]);
   const [auth, setAuth] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
+  const [csrf, setCsrf] = useState(null);
   const [selectedAccount, setSelectedAccount] = useState(DEMO_ACCOUNTS[0].username);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -27,11 +28,18 @@ function App() {
     setLoading(false);
   }, []);
 
-  const buildAuthConfig = (credentials) => ({
-    headers: {
+  const buildRequestConfig = (credentials, csrfToken = csrf) => {
+    const headers = {
       Authorization: `Basic ${window.btoa(`${credentials.username}:${credentials.password}`)}`,
-    },
-  });
+    };
+    if (csrfToken?.headerName && csrfToken?.token) {
+      headers[csrfToken.headerName] = csrfToken.token;
+    }
+    return {
+      headers,
+      withCredentials: true,
+    };
+  };
 
   const fetchData = async (credentials = auth) => {
     if (!credentials) {
@@ -40,19 +48,23 @@ function App() {
 
     try {
       setLoading(true);
-      const authConfig = buildAuthConfig(credentials);
+      const authConfig = buildRequestConfig(credentials, null);
+      const csrfRes = await axios.get(`${API_BASE_URL}/auth/csrf`, authConfig);
+      const csrfToken = csrfRes.data;
       const [userRes, policiesRes, claimsRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/auth/me`, authConfig),
         axios.get(`${API_BASE_URL}/policies`, authConfig),
         axios.get(`${API_BASE_URL}/claims`, authConfig),
       ]);
       setAuth(credentials);
+      setCsrf(csrfToken);
       setCurrentUser(userRes.data);
       setPolicies(policiesRes.data);
       setClaims(claimsRes.data);
       setError(null);
     } catch (err) {
       setAuth(null);
+      setCsrf(null);
       setCurrentUser(null);
       setPolicies([]);
       setClaims([]);
@@ -78,6 +90,7 @@ function App() {
 
   const handleLogout = () => {
     setAuth(null);
+    setCsrf(null);
     setCurrentUser(null);
     setPolicies([]);
     setClaims([]);
@@ -131,7 +144,7 @@ function App() {
     );
   }
 
-  const authConfig = buildAuthConfig(auth);
+  const authConfig = buildRequestConfig(auth);
 
   if (loading) {
     return (

@@ -82,7 +82,11 @@ function Dashboard({ policies, claims, onRefresh, apiBase, authConfig, currentUs
       setShowPolicyModal(false);
       onRefresh();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save policy. This action requires admin access.');
+      setError(
+        err.response?.status === 403
+          ? 'Admin access is required to change policies.'
+          : err.response?.data?.error || 'Failed to save policy'
+      );
     }
   };
 
@@ -92,7 +96,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase, authConfig, currentUs
         await axios.delete(`${apiBase}/policies/${id}`, authConfig);
         onRefresh();
       } catch (err) {
-        alert('Failed to delete policy. This action requires admin access.');
+        alert(err.response?.status === 403 ? 'Admin access is required to delete policies.' : 'Failed to delete policy');
       }
     }
   };

@@ -2,6 +2,7 @@ package com.insurewell.controller;
 
 import com.insurewell.security.AuthenticatedUser;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -45,5 +46,13 @@ public class ApiController {
     body.put("role", user.getRole());
     body.put("policyId", user.getPolicyId());
     return ResponseEntity.ok(body);
+  }
+
+  @GetMapping("/auth/csrf")
+  public ResponseEntity<Map<String, String>> csrf(CsrfToken csrfToken) {
+    return ResponseEntity.ok(Map.of(
+      "headerName", csrfToken.getHeaderName(),
+      "token", csrfToken.getToken()
+    ));
   }
 }

@@ -74,7 +74,7 @@ function Claims({ policies, claims, onRefresh, apiBase, authConfig, currentUser 
       await axios.patch(`${apiBase}/claims/${claimId}/status`, { status: newStatus }, authConfig);
       onRefresh();
     } catch (err) {
-      alert('Failed to update claim status. This action requires admin access.');
+      alert(err.response?.status === 403 ? 'Admin access is required to update claim status.' : 'Failed to update claim status');
     }
   };
 
@@ -84,7 +84,7 @@ function Claims({ policies, claims, onRefresh, apiBase, authConfig, currentUser 
         await axios.delete(`${apiBase}/claims/${claimId}`, authConfig);
         onRefresh();
       } catch (err) {
-        alert('Failed to delete claim. This action requires admin access.');
+        alert(err.response?.status === 403 ? 'Admin access is required to delete claims.' : 'Failed to delete claim');
       }
     }
   };

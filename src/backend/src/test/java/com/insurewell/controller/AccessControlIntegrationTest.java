@@ -8,6 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -58,6 +59,7 @@ class AccessControlIntegrationTest {
         .param("policy_id", "POL-2024-001")
         .param("amount", "250.0")
         .param("description", "Follow-up visit")
+        .with(csrf())
         .with(httpBasic("alex", "policy123")))
       .andExpect(status().isCreated())
       .andExpect(jsonPath("$.policyId").value("POL-2024-001"))
@@ -69,6 +71,7 @@ class AccessControlIntegrationTest {
     mockMvc.perform(patch("/api/claims/CLM-1715787000000/status")
         .contentType(MediaType.APPLICATION_JSON)
         .content("{\"status\":\"Rejected\"}")
+        .with(csrf())
         .with(httpBasic("alex", "policy123")))
       .andExpect(status().isForbidden());
   }
@@ -78,6 +81,7 @@ class AccessControlIntegrationTest {
     mockMvc.perform(patch("/api/claims/CLM-1715787000000/status")
         .contentType(MediaType.APPLICATION_JSON)
         .content("{\"status\":\"Rejected\"}")
+        .with(csrf())
         .with(httpBasic("admin", "admin123")))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.id").value("CLM-1715787000000"))
