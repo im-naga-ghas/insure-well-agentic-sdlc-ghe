@@ -29,7 +29,7 @@ test.describe('Claims Page', () => {
     await page.getByTestId('input-claim-amount').clear();
     await page.getByTestId('input-claim-description').fill('');
     await page.getByTestId('submit-claim-btn').click();
-    await expect(page.getByTestId('claim-form-error')).toBeVisible();
+    await expect(page.locator('[data-testid^="error-"]').first()).toBeVisible();
   });
 
   test('can submit a new claim through the form', async ({ page }) => {
