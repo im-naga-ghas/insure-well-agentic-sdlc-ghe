@@ -28,9 +28,18 @@ function App() {
     setLoading(false);
   }, []);
 
+  const encodeBasicCredentials = (credentials) => {
+    const bytes = new TextEncoder().encode(`${credentials.username}:${credentials.password}`);
+    let binary = '';
+    bytes.forEach((value) => {
+      binary += String.fromCharCode(value);
+    });
+    return window.btoa(binary);
+  };
+
   const buildRequestConfig = (credentials, csrfToken = csrf) => {
     const headers = {
-      Authorization: `Basic ${window.btoa(`${credentials.username}:${credentials.password}`)}`,
+      Authorization: `Basic ${encodeBasicCredentials(credentials)}`,
     };
     if (csrfToken?.headerName && csrfToken?.token) {
       headers[csrfToken.headerName] = csrfToken.token;
