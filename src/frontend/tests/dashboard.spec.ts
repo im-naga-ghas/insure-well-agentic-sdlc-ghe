@@ -78,3 +78,25 @@ test.describe('Policy Dashboard', () => {
     await expect(page.getByTestId('recent-claims-table')).toBeVisible();
   });
 });
+
+test.describe('Policy Dashboard Empty State', () => {
+  test('shows empty-state message when there are no policies', async ({ page }) => {
+    await page.route('**/api/policies', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    });
+    await page.route('**/api/claims', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    });
+
+    await page.goto('/');
+    await expect(page.getByTestId('dashboard-empty-state')).toBeVisible();
+  });
+});
