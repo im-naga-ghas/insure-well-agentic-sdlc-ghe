@@ -45,7 +45,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
   };
 
   const getPolicyValidationError = (payload) => {
-    if (!payload.holderName || !payload.planName || !payload.coverageAmount || !payload.startDate || !payload.endDate) {
+    if (!payload.holderName || !payload.planName || !payload.coverageAmount || !payload.status || !payload.startDate || !payload.endDate) {
       return 'All fields are required';
     }
 
