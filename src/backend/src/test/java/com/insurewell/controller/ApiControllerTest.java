@@ -16,7 +16,7 @@ class ApiControllerTest {
   private MockMvc mockMvc;
 
   @Test
-  void apiRootReturnsServiceMetadata() throws Exception {
+  void shouldReturnServiceMetadataWhenApiRootIsCalled() throws Exception {
     mockMvc.perform(get("/api"))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.name").value("InsureWell API"))
@@ -27,7 +27,7 @@ class ApiControllerTest {
   }
 
   @Test
-  void healthReturnsStatusAndTimestamp() throws Exception {
+  void shouldReturnStatusAndTimestampWhenHealthEndpointIsCalled() throws Exception {
     mockMvc.perform(get("/api/health"))
       .andExpect(status().isOk())
       .andExpect(jsonPath("$.status").value("ok"))
