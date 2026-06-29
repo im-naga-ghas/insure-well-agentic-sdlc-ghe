@@ -18,8 +18,7 @@
 5. [How to trigger it](#5-how-to-trigger-it)
    - [5.1 Assign an issue](#51-assign-an-issue)
    - [5.2 The Agents dashboard — create a plan](#52-the-agents-dashboard--create-a-plan)
-   - [5.3 Trigger from local: VS Code Chat &amp; CLI](#53-trigger-from-local-vs-code-chat--cli)
-   - [5.4 Other entry points](#54-other-entry-points)
+   - [5.3 Other entry points](#53-other-entry-points)
 6. [Watching the agent work: sessions &amp; PRs](#6-watching-the-agent-work-sessions--prs)
 7. [How to customize it](#7-how-to-customize-it)
    - [7.1 Custom instructions](#71-custom-instructions)
@@ -96,7 +95,18 @@ The session log shows the environment boot, firewall, repo clone, and MCP server
 
 ## 5. How to trigger it
 
-### 5.1 Assign an issue
+### 5.1 The Agents dashboard — create a plan
+
+Repository **Agents** tab → type a task in *"Give Copilot a background task to work on"*, pick a model, and send. Starter cards: **Explain repository**, **Improve my workflow**, **Create a plan**. Start by asking Copilot to **create a plan** and propose issues before any code is written.
+Use below prompt to create a plan for a new feature:
+
+```
+Create a plan to add a Policy Renewal Reminder feature to InsureWell. Identify policies expiring within 30 days, show a dashboard banner, and surface a renewal reminder. Don't write code yet — research the repo, produce a step-by-step plan, and propose 3 well-scoped issues with acceptance criteria.
+```
+
+![Agents dashboard / Sessions](images/01-agents-tab.png)
+
+### 5.2 Assign an issue
 
 The classic entry point — write a well-scoped issue and hand it to Copilot.
 
@@ -111,41 +121,9 @@ The classic entry point — write a well-scoped issue and hand it to Copilot.
    ![Issue page with Assign to Agent](images/05-issue-page.png)
 4. Copilot starts a background session and later opens a PR.
 
-### 5.2 The Agents dashboard — create a plan
 
-Repository **Agents** tab → type a task in *"Give Copilot a background task to work on"*, pick a model, and send. Starter cards: **Explain repository**, **Improve my workflow**, **Create a plan**. Start by asking Copilot to **create a plan** and propose issues before any code is written.
 
-![Agents dashboard / Sessions](images/01-agents-tab.png)
-
-### 5.3 Trigger from local: VS Code Chat & CLI
-
-You can delegate to the cloud agent **without leaving your machine** — the work still runs on GitHub.
-
-**VS Code (Copilot Chat):**
-
-1. Sign in to Copilot in VS Code and open the GitHub repo.
-2. Open the **Chat** view and switch the picker to **Agents** (or open the dedicated agent sessions panel).
-3. Type the task, e.g. `Add a policy renewal reminder banner to the InsureWell dashboard with tests`, and submit to the cloud agent.
-4. The agent runs in the background on GitHub; track it via the session entry and the resulting PR — keep coding locally meanwhile.
-
-**GitHub CLI (`gh`):**
-
-```bash
-# one-time: install the Copilot agent extension
-gh extension install github/gh-copilot-agent   # if not bundled
-
-# start a background task in a repo
-gh agent-task create --repo im-naga-ghas/insure-well-agentic-sdlc-ghe \
-  --body "Add a policy renewal reminder banner to the InsureWell dashboard with tests"
-
-# list and follow sessions
-gh agent-task list --repo im-naga-ghas/insure-well-agentic-sdlc-ghe
-gh agent-task view <id> --repo im-naga-ghas/insure-well-agentic-sdlc-ghe
-```
-
-Copilot opens the PR when done; review it locally or on GitHub.
-
-### 5.4 Other entry points
+### 5.3 Other entry points
 
 - **Copilot Chat** on GitHub.com (carries chat context into the session)
 - **IDEs:** JetBrains, Eclipse, Visual Studio
