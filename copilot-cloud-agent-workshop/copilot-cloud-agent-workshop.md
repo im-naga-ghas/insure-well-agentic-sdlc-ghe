@@ -95,16 +95,18 @@ The session log shows the environment boot, firewall, repo clone, and MCP server
 
 ## 5. How to trigger it
 
-### 5.1 The Agents dashboard — create a plan
+### 5.1 The Agents dashboard — create a issue
 
 Repository **Agents** tab → type a task in *"Give Copilot a background task to work on"*, pick a model, and send. Starter cards: **Explain repository**, **Improve my workflow**, **Create a plan**. Start by asking Copilot to **create a plan** and propose issues before any code is written.
 Use below prompt to create a plan for a new feature:
 
 ```
-Create a plan to add a Policy Renewal Reminder feature to InsureWell. Identify policies expiring within 30 days, show a dashboard banner, and surface a renewal reminder. Don't write code yet — research the repo, produce a step-by-step plan, and propose 3 well-scoped issues with acceptance criteria, each issue should contains step to generate pdf with change sets along with screenshots of UI pages.
+Create github issues to add a Policy Renewal Reminder feature to InsureWell. Don't write code yet — research the repo, produce a step-by-step plan, and propose 1 well-scoped issues with acceptance criteria.
 ```
 
 ![Agents dashboard / Sessions](images/01-agents-tab.png)
+
+Select `Create or update Issue/pull request in this session`. Post selection, Copilot will research the repo, create a plan, and propose issues. You can review the plan in the session log.
 
 ### 5.2 Assign an issue
 
@@ -118,7 +120,17 @@ The classic entry point — write a well-scoped issue and hand it to Copilot.
    ![Issue page with Assign to Agent](images/05-issue-page.png)
 3. Copilot starts a background session and later opens a PR.
 
+4. You can view the session log to see how Copilot researched, planned, and implemented the feature.
 
+5. Steer the session by leaving `Generate pdf documentation with changes along UI screens`
+
+#### 5.2.1. How to steer it (get the best results)
+
+- **Well-scoped tasks:** clear problem, acceptance criteria, affected files.
+- **Research → plan → iterate** before opening a PR.
+- **Iterate via review comments**; batch with **Start a review**; only write-access users are honored.
+- **Pick the model** at task start.
+- Hand off complex/ambiguous/security-critical work to humans; give Copilot bugs, tests, docs, tech debt.
 
 ### 5.3 Other entry points
 
@@ -139,7 +151,7 @@ Depending on the entry point, Copilot either opens a draft PR right away (e.g., 
 
 Use **View session** to see step-by-step logs (see §4). Iterate by leaving review comments and mentioning `@copilot`; batch them via **Start a review**.
 
----
+
 
 ## 7. How to customize it
 
@@ -159,25 +171,9 @@ GitHub + Playwright MCP are enabled by default; add your own under **Settings �
 - **Hooks** — run shell commands at key points (validation, logging, scanning).
 - **Skills** — instructions/scripts/resources for specialized tasks.
 
-### 7.4 Secrets, firewall & runners
-
-- **Agents secrets/variables** for the agent (exposed as env vars); MCP-bound values must use the `COPILOT_MCP_` prefix.
-- **Firewall** allowlist (recommended on); custom allowlist for extra domains.
-- **Runners** — larger GitHub-hosted (with Azure private networking) or self-hosted/ARC (firewall off).
-
 ---
 
-## 8. How to steer it (get the best results)
-
-- **Well-scoped tasks:** clear problem, acceptance criteria, affected files.
-- **Research → plan → iterate** before opening a PR.
-- **Iterate via review comments**; batch with **Start a review**; only write-access users are honored.
-- **Pick the model** at task start.
-- Hand off complex/ambiguous/security-critical work to humans; give Copilot bugs, tests, docs, tech debt.
-
----
-
-## 9. Limitations & cost
+## 8. Limitations & cost
 
 - One repo, one branch, one PR per task; **59-min** cap.
 - Doesn't honor content exclusions; GitHub-hosted repos only.
@@ -186,7 +182,7 @@ GitHub + Playwright MCP are enabled by default; add your own under **Settings �
 
 ---
 
-## 10. Workshop labs
+## 9. Workshop labs
 
 1. **Plan:** on the **Agents** tab, ask Copilot to *create a plan* for a feature and propose issues; review the plan in the session.
 2. **Trigger:** create a well-scoped issue (use the template below), **Assign to Agent**, then open the session log to inspect the model's reasoning and tool choices.
@@ -215,7 +211,7 @@ This is InsureWell: a React frontend and a Spring Boot (Java 17/Maven) backend.
 
 ---
 
-## 11. Quick reference
+## 10. Quick reference
 
 | Want to…        | Do this                                       |
 | ---------------- | --------------------------------------------- |
