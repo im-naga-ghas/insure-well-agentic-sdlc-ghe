@@ -43,10 +43,18 @@ public class Policy {
   @Column(nullable = false)
   private LocalDateTime createdAt;
 
+  private LocalDateTime renewalReminderSentAt;
+
+  @Column(columnDefinition = "VARCHAR(20) DEFAULT 'none'")
+  private String renewalStatus;
+
   @PrePersist
   protected void onCreate() {
     if (createdAt == null) {
       createdAt = LocalDateTime.now();
+    }
+    if (renewalStatus == null) {
+      renewalStatus = "none";
     }
   }
 

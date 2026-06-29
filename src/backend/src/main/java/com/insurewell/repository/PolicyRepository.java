@@ -12,4 +12,5 @@ import java.util.List;
 @Repository
 public interface PolicyRepository extends JpaRepository<Policy, String> {
   List<Policy> findAllByOrderByCreatedAtAsc();
+  List<Policy> findByStatusAndEndDateBetweenOrderByEndDateAsc(String status, String fromDate, String toDate);
 }

@@ -23,5 +23,7 @@ public class PolicyDTO {
   private String startDate;
   private String endDate;
   private String createdAt;
+  private String renewalReminderSentAt;
+  private String renewalStatus;
 
 }
