@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
 
-function Dashboard({ policies, claims, onRefresh, apiBase }) {
+function Dashboard({ policies, claims, expiringPolicies = [], onRefresh, apiBase }) {
   const [selectedPolicyId, setSelectedPolicyId] = useState(policies[0]?.id || null);
+  const [showRenewalReminder, setShowRenewalReminder] = useState(true);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
   const [formData, setFormData] = useState({
@@ -21,6 +22,10 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
   const pendingCount = policyClaims.filter(c => c.status === 'Pending').length;
   const approvedCount = policyClaims.filter(c => c.status === 'Approved').length;
   const totalClaimed = policyClaims.reduce((sum, c) => sum + c.amount, 0);
+
+  useEffect(() => {
+    setShowRenewalReminder(true);
+  }, [expiringPolicies]);
 
   const openAddModal = () => {
     setModalMode('add');
@@ -101,6 +106,40 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
           + Add Policy
         </button>
       </div>
+
+      {showRenewalReminder && expiringPolicies.length > 0 && (
+        <div className="renewal-banner" data-testid="renewal-banner">
+          <div className="renewal-banner-content">
+            <strong>Policy renewal reminder</strong>
+            <p>
+              The following policies expire within 30 days:{' '}
+              {expiringPolicies.map((policy, index) => (
+                <React.Fragment key={policy.id}>
+                  {index > 0 && ', '}
+                  <a
+                    href={`#policy-${policy.id}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedPolicyId(policy.id);
+                    }}
+                    data-testid={`renewal-link-${policy.id}`}
+                  >
+                    {policy.id}
+                  </a>
+                </React.Fragment>
+              ))}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary renewal-dismiss-btn"
+            onClick={() => setShowRenewalReminder(false)}
+            data-testid="dismiss-renewal-banner"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {selectedPolicy && (
         <>

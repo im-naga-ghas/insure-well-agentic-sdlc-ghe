@@ -77,4 +77,12 @@ test.describe('Policy Dashboard', () => {
   test('recent claims table is visible when a policy is selected', async ({ page }) => {
     await expect(page.getByTestId('recent-claims-table')).toBeVisible();
   });
+
+  test('renewal reminder banner links to policy and is dismissible', async ({ page }) => {
+    await expect(page.getByTestId('renewal-banner')).toBeVisible();
+    await page.getByTestId('renewal-link-POL-2024-001').click();
+    await expect(page.getByTestId('policy-tab-POL-2024-001')).toHaveClass(/active/);
+    await page.getByTestId('dismiss-renewal-banner').click();
+    await expect(page.getByTestId('renewal-banner')).not.toBeVisible();
+  });
 });
