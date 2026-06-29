@@ -262,3 +262,79 @@
   justify-content: flex-end;
   margin-top: 2rem;
 }
+
+/* Renewal Reminder Banner */
+.renewal-banner {
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.renewal-banner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.renewal-banner-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #856404;
+}
+
+.renewal-banner-dismiss {
+  background: none;
+  border: 1px solid #856404;
+  border-radius: 4px;
+  color: #856404;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.25rem 0.75rem;
+}
+
+.renewal-banner-dismiss:hover {
+  background-color: #ffc107;
+  color: #fff;
+}
+
+.renewal-banner-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.renewal-banner-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.renewal-banner-info {
+  color: #856404;
+  font-size: 0.95rem;
+}
+
+.renewal-banner-days {
+  font-weight: 600;
+}
+
+.btn-warning {
+  background-color: #ffc107;
+  color: #856404;
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.btn-warning:hover {
+  background-color: #e0a800;
+  color: #fff;
+}

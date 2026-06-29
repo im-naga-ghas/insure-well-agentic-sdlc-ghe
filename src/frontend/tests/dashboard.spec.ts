@@ -78,3 +78,67 @@ test.describe('Policy Dashboard', () => {
     await expect(page.getByTestId('recent-claims-table')).toBeVisible();
   });
 });
+
+test.describe('Renewal Reminder Banner', () => {
+  const mockExpiringPolicy = [
+    { id: 'POL-001', holderName: 'Jane Doe', planName: 'Gold Plan', daysUntilExpiry: 10 },
+  ];
+
+  test.beforeEach(async ({ page }) => {
+    await page.route('**/api/policies/expiring*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(mockExpiringPolicy),
+      });
+    });
+  });
+
+  test('banner is visible when a policy is expiring soon', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('renewal-banner')).toBeVisible();
+    await expect(page.getByTestId('renewal-banner')).toContainText('Jane Doe');
+    await expect(page.getByTestId('renewal-banner')).toContainText('Gold Plan');
+    await expect(page.getByTestId('renewal-banner')).toContainText('10 days');
+  });
+
+  test('banner is not rendered when no policies are expiring', async ({ page }) => {
+    await page.route('**/api/policies/expiring*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    });
+    await page.goto('/');
+    await expect(page.getByTestId('renewal-banner')).not.toBeVisible();
+  });
+
+  test('clicking dismiss hides the banner without a page reload', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByTestId('renewal-banner')).toBeVisible();
+    await page.getByTestId('renewal-banner-dismiss').click();
+    await expect(page.getByTestId('renewal-banner')).not.toBeVisible();
+    // Dashboard is still intact after dismiss
+    await expect(page.getByTestId('dashboard')).toBeVisible();
+  });
+
+  test('banner shows multiple expiring policies', async ({ page }) => {
+    await page.route('**/api/policies/expiring*', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          { id: 'POL-001', holderName: 'Jane Doe', planName: 'Gold Plan', daysUntilExpiry: 5 },
+          { id: 'POL-002', holderName: 'John Smith', planName: 'Silver Plan', daysUntilExpiry: 18 },
+        ]),
+      });
+    });
+    await page.goto('/');
+    await expect(page.getByTestId('renewal-banner')).toBeVisible();
+    await expect(page.getByTestId('renewal-banner')).toContainText('Jane Doe');
+    await expect(page.getByTestId('renewal-banner')).toContainText('John Smith');
+    await expect(page.getByTestId('renewal-banner-item-POL-001')).toBeVisible();
+    await expect(page.getByTestId('renewal-banner-item-POL-002')).toBeVisible();
+  });
+});
