@@ -1,8 +1,8 @@
 # GitHub Copilot Cloud Agent — Hands-On Workshop
 
-> A complete, guided workshop on the **GitHub Copilot cloud agent** (also called the *coding agent*): what it is, how it differs from other Copilot agents, how to trigger, customize, run, and steer it — with step-by-step instructions and screenshots from a live demo repository.
+> A complete, guided workshop on the **GitHub Copilot cloud agent** (also called the *coding agent*): what it is, how it differs from other Copilot agents, how to trigger, customize, run, and steer it — with step-by-step instructions and screenshots from a live demo repository. Everything in this workshop runs on **github.com**: first **create a plan**, then **create issues**, then **assign them to Copilot**.
 
-**Demo repository used for screenshots:** [`im-sandbox-sukumarp/gh-repo-stats`](https://github.com/im-sandbox-sukumarp/gh-repo-stats)
+**Demo repository used for screenshots:** [`im-naga-ghas/insure-well-agentic-sdlc-ghe`](https://github.com/im-naga-ghas/insure-well-agentic-sdlc-ghe)
 **Audience:** Developers, team leads, and platform admins
 **Format:** Hands-on, follow-along
 **Last verified:** June 2026
@@ -17,7 +17,7 @@
 4. [Where it runs (the development environment)](#4-where-it-runs-the-development-environment)
 5. [How to trigger it](#5-how-to-trigger-it)
    - [5.1 Assign an issue](#51-assign-an-issue)
-   - [5.2 The Agents dashboard](#52-the-agents-dashboard)
+   - [5.2 The Agents dashboard — create a plan](#52-the-agents-dashboard--create-a-plan)
    - [5.3 Trigger from local: VS Code Chat &amp; CLI](#53-trigger-from-local-vs-code-chat--cli)
    - [5.4 Other entry points](#54-other-entry-points)
 6. [Watching the agent work: sessions &amp; PRs](#6-watching-the-agent-work-sessions--prs)
@@ -49,7 +49,7 @@ It can:
 All work happens **on GitHub** with full transparency — every step is a commit, viewable in session logs.
 
 ![Demo repository home](images/00-repo-home.png)
-*The demo repo `gh-repo-stats`, with the **Agents** tab in the repository navigation.*
+*The demo repo `insure-well-agentic-sdlc-ghe` (React + Spring Boot insurance app), with the **Agents** tab in the repository navigation.*
 
 ---
 
@@ -73,7 +73,7 @@ Key distinction: cloud agent works **autonomously on GitHub** and opens a PR; **
 - For Business/Enterprise, an admin enables the **Copilot cloud agent** policy.
 - Repository owners can opt repos in/out.
 - Repo settings page: **Settings → Copilot → Cloud agent**.
-- **Permissions:** you need write access to assign Copilot, create issues/PRs, and add workflows (admin for settings). For the workshop, **fork the demo repo** to your own account so you have admin rights.
+- **Permissions:** you need write access to assign Copilot, create issues/PRs, and add workflows (admin for settings). For the workshop, **fork the demo repo** (`insure-well-agentic-sdlc-ghe`) to your own account so you have admin rights.
 - **Time:** ~60–90 min. **Outcome:** trigger, customize, steer, and merge a Copilot PR.
 
 ---
@@ -90,7 +90,7 @@ The agent gets its **own ephemeral development environment powered by GitHub Act
 The session log shows the environment boot, firewall, repo clone, and MCP servers:
 
 ![Session log showing environment setup](images/09-session-log.png)
-*A completed session: model used, AI credits, "Setting up environment", agent firewall, repo clone, and the `runtime-tools` MCP server.*
+*A completed session: model used, AI credits, "Setting up environment", agent firewall, repo clone, and the default MCP servers.*
 
 ---
 
@@ -103,14 +103,17 @@ The classic entry point — write a well-scoped issue and hand it to Copilot.
 1. Go to **Issues → New issue**, write a clear title, description, and acceptance criteria.
 
    ![New issue with acceptance criteria](images/03-new-issue.png)
-2. Open the issue and, in the sidebar, choose **Assign to Agent** (or add **Copilot** as the assignee).
+2. The issue shows up in the repo backlog alongside your planned features.
+
+   ![Issues list with the new issue on top](images/02-issues-list.png)
+3. Open the issue and, in the sidebar, choose **Assign to Agent** (or add **Copilot** as the assignee).
 
    ![Issue page with Assign to Agent](images/05-issue-page.png)
-3. Copilot starts a background session and later opens a PR.
+4. Copilot starts a background session and later opens a PR.
 
-### 5.2 The Agents dashboard
+### 5.2 The Agents dashboard — create a plan
 
-Repository **Agents** tab → type a task in *"Give Copilot a background task to work on"*, pick a model, and send. Starter cards: **Explain repository**, **Improve my workflow**, **Create a plan**.
+Repository **Agents** tab → type a task in *"Give Copilot a background task to work on"*, pick a model, and send. Starter cards: **Explain repository**, **Improve my workflow**, **Create a plan**. Start by asking Copilot to **create a plan** and propose issues before any code is written.
 
 ![Agents dashboard / Sessions](images/01-agents-tab.png)
 
@@ -122,7 +125,7 @@ You can delegate to the cloud agent **without leaving your machine** — the wor
 
 1. Sign in to Copilot in VS Code and open the GitHub repo.
 2. Open the **Chat** view and switch the picker to **Agents** (or open the dedicated agent sessions panel).
-3. Type the task, e.g. `Add a --version flag to the CLI and a unit test`, and submit to the cloud agent.
+3. Type the task, e.g. `Add a policy renewal reminder banner to the InsureWell dashboard with tests`, and submit to the cloud agent.
 4. The agent runs in the background on GitHub; track it via the session entry and the resulting PR — keep coding locally meanwhile.
 
 **GitHub CLI (`gh`):**
@@ -132,12 +135,12 @@ You can delegate to the cloud agent **without leaving your machine** — the wor
 gh extension install github/gh-copilot-agent   # if not bundled
 
 # start a background task in a repo
-gh agent-task create --repo im-sandbox-sukumarp/gh-repo-stats \
-  --body "Add a --version flag to the CLI and a unit test"
+gh agent-task create --repo im-naga-ghas/insure-well-agentic-sdlc-ghe \
+  --body "Add a policy renewal reminder banner to the InsureWell dashboard with tests"
 
 # list and follow sessions
-gh agent-task list --repo im-sandbox-sukumarp/gh-repo-stats
-gh agent-task view <id> --repo im-sandbox-sukumarp/gh-repo-stats
+gh agent-task list --repo im-naga-ghas/insure-well-agentic-sdlc-ghe
+gh agent-task view <id> --repo im-naga-ghas/insure-well-agentic-sdlc-ghe
 ```
 
 Copilot opens the PR when done; review it locally or on GitHub.
@@ -188,9 +191,12 @@ jobs:
     permissions: { contents: read }
     steps:
       - uses: actions/checkout@v6
+      - uses: actions/setup-java@v4
+        with: { distribution: "temurin", java-version: "17", cache: "maven" }
       - uses: actions/setup-node@v4
         with: { node-version: "20", cache: "npm" }
-      - run: npm ci
+      - run: cd src/frontend && npm ci
+      - run: cd src/backend && mvn -B verify
 ```
 
 Customizable keys: `steps`, `permissions`, `runs-on`, `services`, `snapshot`, `timeout-minutes` (max 59). The file **must be on the default branch** to take effect — after merging, run it from the **Actions** tab to validate.
@@ -236,27 +242,29 @@ GitHub + Playwright MCP are enabled by default; add your own under **Settings �
 
 ## 10. Workshop labs
 
-1. **Trigger:** create a well-scoped issue (use the template below), **Assign to Agent**, then open the session log to inspect the model's reasoning and tool choices.
-2. **Customize:** add the sample `copilot-instructions.md`, then `copilot-setup-steps.yml`, and merge to default.
-3. **Steer:** review the PR, `@copilot` a change, merge.
-4. **Extend:** add an MCP server; create a testing custom agent.
+1. **Plan:** on the **Agents** tab, ask Copilot to *create a plan* for a feature and propose issues; review the plan in the session.
+2. **Trigger:** create a well-scoped issue (use the template below), **Assign to Agent**, then open the session log to inspect the model's reasoning and tool choices.
+3. **Customize:** add the sample `copilot-instructions.md`, then `copilot-setup-steps.yml`, and merge to default.
+4. **Steer:** review the PR, `@copilot` a change, merge.
+5. **Extend:** add an MCP server; create a testing custom agent.
 
 **Issue template (copy-paste):**
 
 ```
-Add a `--version` flag to the CLI.
+Add a Policy Renewal Reminder banner to the InsureWell dashboard.
 ## Acceptance criteria
-- `--version` prints the version and exits 0
-- Add a unit test
+- Backend endpoint returns policies expiring within 30 days
+- Dashboard shows a dismissible renewal reminder banner that links to the policy
+- Add unit + Playwright tests
 - Update README usage
 ```
 
 **Sample `.github/copilot-instructions.md`:**
 
 ```markdown
-This is a Go-based gh CLI extension.
-- Build: `make build`  Test: `make test`
-- Run gofmt before committing; write table-driven tests; update README for new flags.
+This is InsureWell: a React frontend and a Spring Boot (Java 17/Maven) backend.
+- Backend: `cd src/backend && mvn test`  Frontend: `cd src/frontend && npm test`
+- Match existing style; add Playwright e2e tests for UI; update README for new endpoints/screens.
 ```
 
 ---
