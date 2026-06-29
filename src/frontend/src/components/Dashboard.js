@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
 
@@ -22,10 +22,6 @@ function Dashboard({ policies, claims, expiringPolicies = [], onRefresh, apiBase
   const pendingCount = policyClaims.filter(c => c.status === 'Pending').length;
   const approvedCount = policyClaims.filter(c => c.status === 'Approved').length;
   const totalClaimed = policyClaims.reduce((sum, c) => sum + c.amount, 0);
-
-  useEffect(() => {
-    setShowRenewalReminder(true);
-  }, [expiringPolicies]);
 
   const openAddModal = () => {
     setModalMode('add');

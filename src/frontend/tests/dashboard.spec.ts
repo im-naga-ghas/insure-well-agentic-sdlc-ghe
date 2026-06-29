@@ -79,6 +79,25 @@ test.describe('Policy Dashboard', () => {
   });
 
   test('renewal reminder banner links to policy and is dismissible', async ({ page }) => {
+    await page.route('**/api/policies/expiring-soon', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          {
+            id: 'POL-2024-001',
+            holderName: 'Alex Johnson',
+            planName: 'InsureWell Premium Health Plan',
+            coverageAmount: 250000,
+            status: 'active',
+            startDate: '2024-01-01',
+            endDate: '2026-12-31',
+            createdAt: '2026-01-01T00:00:00Z',
+          },
+        ]),
+      });
+    });
+    await page.reload();
     await expect(page.getByTestId('renewal-banner')).toBeVisible();
     await page.getByTestId('renewal-link-POL-2024-001').click();
     await expect(page.getByTestId('policy-tab-POL-2024-001')).toHaveClass(/active/);

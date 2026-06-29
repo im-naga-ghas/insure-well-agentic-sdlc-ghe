@@ -7,7 +7,6 @@ import com.insurewell.repository.PolicyRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -44,7 +43,7 @@ public class DataConfig {
             .coverageAmount(250000.0)
             .status("active")
             .startDate("2024-01-01")
-            .endDate(LocalDate.now(ZoneId.of("UTC")).plusDays(15).toString())
+            .endDate("2026-12-31")
             .createdAt(now)
             .build(),
           Policy.builder()
