@@ -54,6 +54,7 @@ src/
 | Method | Endpoint                     | Description                  |
 |--------|------------------------------|------------------------------|
 | GET    | `/api/policies`              | List all policies            |
+| GET    | `/api/policies/expiring-soon` | List policies expiring within 30 days |
 | POST   | `/api/policies`              | Create a policy              |
 | GET    | `/api/policies/{id}`         | Get a single policy          |
 | PATCH  | `/api/policies/{id}`         | Update a policy              |
@@ -86,6 +87,7 @@ src/
 **Components:**
 - Navigation bar with page switching
 - Policy tabs for multi-policy support
+- Renewal reminder banner for policies expiring within 30 days
 - Policy management (add, edit, delete)
 - Claim submission form
 - Claims table with status updates
