@@ -4,10 +4,12 @@ import com.insurewell.dto.ClaimDTO;
 import com.insurewell.model.Claim;
 import com.insurewell.repository.ClaimRepository;
 import com.insurewell.repository.PolicyRepository;
+import com.insurewell.service.ClaimValidationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -28,6 +30,9 @@ public class ClaimController {
 
   @Autowired
   private PolicyRepository policyRepository;
+
+  @Autowired
+  private ClaimValidationService claimValidationService;
 
   private ClaimDTO toDTO(Claim claim) {
     return ClaimDTO.builder()
@@ -61,34 +66,28 @@ public class ClaimController {
 
   @PostMapping
   public ResponseEntity<?> createClaim(
-      @RequestParam String policy_id,
-      @RequestParam Double amount,
-      @RequestParam String description) {
+      @RequestParam(required = false) String policy_id,
+      @RequestParam(required = false) Double amount,
+      @RequestParam(required = false) String description,
+      @RequestParam(required = false) MultipartFile file) {
 
-    // Validate input
-    if (policy_id == null || policy_id.trim().isEmpty()
-        || amount == null || amount <= 0
-        || description == null || description.trim().isEmpty()) {
-      return ResponseEntity.badRequest()
-        .body(Map.of("error", "policy_id, amount, and description are required"));
-    }
-
-    // Check if policy exists
-    if (!policyRepository.existsById(policy_id)) {
-      return ResponseEntity.status(HttpStatus.NOT_FOUND)
-        .body(Map.of("error", "Policy not found"));
+    Map<String, String> errors = claimValidationService.validate(policy_id, amount, description, file);
+    if (!errors.isEmpty()) {
+      return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+          .body(Map.of("errors", errors));
     }
 
     LocalDateTime now = LocalDateTime.now();
     String claimId = "CLM-" + System.currentTimeMillis();
+    String fileName = (file != null && !file.isEmpty()) ? file.getOriginalFilename() : null;
 
     Claim claim = Claim.builder()
       .id(claimId)
-      .policyId(policy_id)
+      .policyId(policy_id.trim())
       .amount(amount)
-      .description(description)
+      .description(description.trim())
       .status("Pending")
-      .fileName(null) // File upload would be handled separately
+      .fileName(fileName)
       .submittedAt(now)
       .updatedAt(now)
       .build();
