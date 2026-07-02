@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
+import RenewalReminderBanner from './RenewalReminderBanner';
 
 function Dashboard({ policies, claims, onRefresh, apiBase }) {
   const [selectedPolicyId, setSelectedPolicyId] = useState(policies[0]?.id || null);
@@ -15,6 +16,20 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
     endDate: '',
   });
   const [error, setError] = useState('');
+  const [expiringPolicies, setExpiringPolicies] = useState([]);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  useEffect(() => {
+    const fetchExpiringPolicies = async () => {
+      try {
+        const res = await axios.get(`${apiBase}/policies/expiring?days=30`);
+        setExpiringPolicies(res.data);
+      } catch (err) {
+        // Banner is non-critical; ignore fetch errors
+      }
+    };
+    fetchExpiringPolicies();
+  }, [apiBase, policies]);
 
   const selectedPolicy = policies.find(p => p.id === selectedPolicyId);
   const policyClaims = claims.filter(c => c.policyId === selectedPolicyId);
@@ -90,6 +105,15 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
     }
   };
 
+  const handleRenew = (policy) => {
+    setSelectedPolicyId(policy.id);
+    openEditModal(policy);
+  };
+
+  const handleBannerDismiss = () => {
+    setBannerDismissed(true);
+  };
+
   return (
     <div className="dashboard-container" data-testid="dashboard">
       <div className="page-header">
@@ -101,6 +125,14 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
           + Add Policy
         </button>
       </div>
+
+      {!bannerDismissed && (
+        <RenewalReminderBanner
+          expiringPolicies={expiringPolicies}
+          onDismiss={handleBannerDismiss}
+          onRenew={handleRenew}
+        />
+      )}
 
       {selectedPolicy && (
         <>
