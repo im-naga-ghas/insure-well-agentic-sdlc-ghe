@@ -18,8 +18,7 @@
 5. [How to trigger it](#5-how-to-trigger-it)
    - [5.1 Assign an issue](#51-assign-an-issue)
    - [5.2 The Agents dashboard — create a plan](#52-the-agents-dashboard--create-a-plan)
-   - [5.3 Trigger from local: VS Code Chat &amp; CLI](#53-trigger-from-local-vs-code-chat--cli)
-   - [5.4 Other entry points](#54-other-entry-points)
+   - [5.3 Other entry points](#53-other-entry-points)
 6. [Watching the agent work: sessions &amp; PRs](#6-watching-the-agent-work-sessions--prs)
 7. [How to customize it](#7-how-to-customize-it)
    - [7.1 Custom instructions](#71-custom-instructions)
@@ -96,61 +95,46 @@ The session log shows the environment boot, firewall, repo clone, and MCP server
 
 ## 5. How to trigger it
 
-### 5.1 Assign an issue
-
-The classic entry point — write a well-scoped issue and hand it to Copilot.
-
-1. Go to **Issues → New issue**, write a clear title, description, and acceptance criteria.
-
-   ![New issue with acceptance criteria](images/03-new-issue.png)
-2. The issue shows up in the repo backlog alongside your planned features.
-
-   ![Issues list with the new issue on top](images/02-issues-list.png)
-3. Open the issue and, in the sidebar, choose **Assign to Agent** (or add **Copilot** as the assignee).
-
-   ![Issue page with Assign to Agent](images/05-issue-page.png)
-4. Copilot starts a background session and later opens a PR.
-
-### 5.2 The Agents dashboard — create a plan
+### 5.1 The Agents dashboard — create a issue
 
 Repository **Agents** tab → type a task in *"Give Copilot a background task to work on"*, pick a model, and send. Starter cards: **Explain repository**, **Improve my workflow**, **Create a plan**. Start by asking Copilot to **create a plan** and propose issues before any code is written.
+Use below prompt to create a plan for a new feature:
+
+```
+Create github issues to add a Policy Renewal Reminder feature to InsureWell. Don't write code yet — research the repo, produce a step-by-step plan, and propose 1 well-scoped issues with acceptance criteria.
+```
 
 ![Agents dashboard / Sessions](images/01-agents-tab.png)
 
-### 5.3 Trigger from local: VS Code Chat & CLI
+Select `Create or update Issue/pull request in this session`. Post selection, Copilot will research the repo, create a plan, and propose issues. You can review the plan in the session log.
 
-You can delegate to the cloud agent **without leaving your machine** — the work still runs on GitHub.
+### 5.2 Assign an issue
 
-**VS Code (Copilot Chat):**
+The classic entry point — write a well-scoped issue and hand it to Copilot.
 
-1. Sign in to Copilot in VS Code and open the GitHub repo.
-2. Open the **Chat** view and switch the picker to **Agents** (or open the dedicated agent sessions panel).
-3. Type the task, e.g. `Add a policy renewal reminder banner to the InsureWell dashboard with tests`, and submit to the cloud agent.
-4. The agent runs in the background on GitHub; track it via the session entry and the resulting PR — keep coding locally meanwhile.
+1. The issue shows up in the repo backlog alongside your planned features.
 
-**GitHub CLI (`gh`):**
+   ![Issues list with the new issue on top](images/02-issues-list.png)
+2. Open the issue and, in the sidebar, choose **Assign to Agent** (or add **Copilot** as the assignee).
 
-```bash
-# one-time: install the Copilot agent extension
-gh extension install github/gh-copilot-agent   # if not bundled
+   ![Issue page with Assign to Agent](images/05-issue-page.png)
+3. Copilot starts a background session and later opens a PR.
 
-# start a background task in a repo
-gh agent-task create --repo im-naga-ghas/insure-well-agentic-sdlc-ghe \
-  --body "Add a policy renewal reminder banner to the InsureWell dashboard with tests"
+4. You can view the session log to see how Copilot researched, planned, and implemented the feature.
 
-# list and follow sessions
-gh agent-task list --repo im-naga-ghas/insure-well-agentic-sdlc-ghe
-gh agent-task view <id> --repo im-naga-ghas/insure-well-agentic-sdlc-ghe
-```
+5. Steer the session by leaving `Generate pdf documentation with changes along UI screens`
 
-Copilot opens the PR when done; review it locally or on GitHub.
+#### 5.2.1. How to steer it (get the best results)
 
-### 5.4 Other entry points
+- **Well-scoped tasks:** clear problem, acceptance criteria, affected files.
+- **Research → plan → iterate** before opening a PR.
+- **Iterate via review comments**; batch with **Start a review**; only write-access users are honored.
+- **Pick the model** at task start.
+- Hand off complex/ambiguous/security-critical work to humans; give Copilot bugs, tests, docs, tech debt.
+
+### 5.3 Other entry points
 
 - **Copilot Chat** on GitHub.com (carries chat context into the session)
-- **IDEs:** JetBrains, Eclipse, Visual Studio
-- **GitHub Mobile**, **REST API**, **GitHub MCP Server**
-- **Integrations:** Jira, Slack, Microsoft Teams, Azure Boards, Linear, Raycast
 - **`@copilot`** in a PR comment, **failing Actions runs**, **security campaigns**, and **automations** (scheduled/event-driven)
 
 ---
@@ -167,7 +151,7 @@ Depending on the entry point, Copilot either opens a draft PR right away (e.g., 
 
 Use **View session** to see step-by-step logs (see §4). Iterate by leaving review comments and mentioning `@copilot`; batch them via **Start a review**.
 
----
+
 
 ## 7. How to customize it
 
@@ -175,63 +159,21 @@ Use **View session** to see step-by-step logs (see §4). Iterate by leaving revi
 
 Supported files: `.github/copilot-instructions.md`, `.github/instructions/**/*.instructions.md`, `**/AGENTS.md`, `CLAUDE.md`, `GEMINI.md`. Org-wide instructions are also honored (repo-level takes priority).
 
-### 7.2 Pre-install dependencies (`copilot-setup-steps.yml`)
-
-Create `.github/workflows/copilot-setup-steps.yml` with one `copilot-setup-steps` job — runs before the agent starts:
-
-```yaml
-name: "Copilot Setup Steps"
-on:
-  workflow_dispatch:
-  push: { paths: [.github/workflows/copilot-setup-steps.yml] }
-  pull_request: { paths: [.github/workflows/copilot-setup-steps.yml] }
-jobs:
-  copilot-setup-steps:
-    runs-on: ubuntu-latest
-    permissions: { contents: read }
-    steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-java@v4
-        with: { distribution: "temurin", java-version: "17", cache: "maven" }
-      - uses: actions/setup-node@v4
-        with: { node-version: "20", cache: "npm" }
-      - run: cd src/frontend && npm ci
-      - run: cd src/backend && mvn -B verify
-```
-
-Customizable keys: `steps`, `permissions`, `runs-on`, `services`, `snapshot`, `timeout-minutes` (max 59). The file **must be on the default branch** to take effect — after merging, run it from the **Actions** tab to validate.
-
-### 7.3 MCP servers
+### 7.2 MCP servers
 
 GitHub + Playwright MCP are enabled by default; add your own under **Settings → Copilot → MCP servers**. Firewall, policies, validation tools, and MCP config live here:
 
 ![Copilot cloud agent settings: firewall, policies, MCP](images/10-settings-mcp.png)
 
-### 7.4 Custom agents, hooks, skills
+### 7.3 Custom agents, hooks, skills
 
 - **Custom agents** — specialized profiles (e.g., frontend, docs, testing) with scoped tools.
 - **Hooks** — run shell commands at key points (validation, logging, scanning).
 - **Skills** — instructions/scripts/resources for specialized tasks.
 
-### 7.5 Secrets, firewall & runners
-
-- **Agents secrets/variables** for the agent (exposed as env vars); MCP-bound values must use the `COPILOT_MCP_` prefix.
-- **Firewall** allowlist (recommended on); custom allowlist for extra domains.
-- **Runners** — larger GitHub-hosted (with Azure private networking) or self-hosted/ARC (firewall off).
-
 ---
 
-## 8. How to steer it (get the best results)
-
-- **Well-scoped tasks:** clear problem, acceptance criteria, affected files.
-- **Research → plan → iterate** before opening a PR.
-- **Iterate via review comments**; batch with **Start a review**; only write-access users are honored.
-- **Pick the model** at task start.
-- Hand off complex/ambiguous/security-critical work to humans; give Copilot bugs, tests, docs, tech debt.
-
----
-
-## 9. Limitations & cost
+## 8. Limitations & cost
 
 - One repo, one branch, one PR per task; **59-min** cap.
 - Doesn't honor content exclusions; GitHub-hosted repos only.
@@ -240,11 +182,11 @@ GitHub + Playwright MCP are enabled by default; add your own under **Settings �
 
 ---
 
-## 10. Workshop labs
+## 9. Workshop labs
 
 1. **Plan:** on the **Agents** tab, ask Copilot to *create a plan* for a feature and propose issues; review the plan in the session.
 2. **Trigger:** create a well-scoped issue (use the template below), **Assign to Agent**, then open the session log to inspect the model's reasoning and tool choices.
-3. **Customize:** add the sample `copilot-instructions.md`, then `copilot-setup-steps.yml`, and merge to default.
+3. **Customize:** add the sample `copilot-instructions.md` merge to default.
 4. **Steer:** review the PR, `@copilot` a change, merge.
 5. **Extend:** add an MCP server; create a testing custom agent.
 
@@ -269,7 +211,7 @@ This is InsureWell: a React frontend and a Spring Boot (Java 17/Maven) backend.
 
 ---
 
-## 11. Quick reference
+## 10. Quick reference
 
 | Want to…        | Do this                                       |
 | ---------------- | --------------------------------------------- |
