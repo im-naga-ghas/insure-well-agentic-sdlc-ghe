@@ -1,7 +1,7 @@
 import React from 'react';
 import '../styles/Navigation.css';
 
-function Navigation({ currentPage, setCurrentPage }) {
+function Navigation({ currentPage, setCurrentPage, user, onLogout }) {
   return (
     <nav className="navbar" data-testid="navbar">
       <div className="navbar-brand">
@@ -27,8 +27,19 @@ function Navigation({ currentPage, setCurrentPage }) {
           </button>
         </li>
       </ul>
+      {user && (
+        <div className="navbar-user">
+          <span className="user-info" data-testid="nav-user-info">
+            {user.username} <span className="user-role">({user.role})</span>
+          </span>
+          <button className="nav-link logout-btn" onClick={onLogout} data-testid="nav-logout">
+            Sign Out
+          </button>
+        </div>
+      )}
     </nav>
   );
 }
 
 export default Navigation;
+
