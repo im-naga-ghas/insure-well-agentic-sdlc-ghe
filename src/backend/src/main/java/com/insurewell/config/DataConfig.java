@@ -65,6 +65,16 @@ public class DataConfig {
             .startDate("2023-06-01")
             .endDate("2024-05-31")
             .createdAt(now)
+            .build(),
+          Policy.builder()
+            .id("POL-2026-003")
+            .holderName("Sarah Williams")
+            .planName("InsureWell Silver Care Plan")
+            .coverageAmount(100000.0)
+            .status("active")
+            .startDate("2026-01-01")
+            .endDate("2026-07-14")
+            .createdAt(now)
             .build()
         );
         policyRepo.saveAll(policies);

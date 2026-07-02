@@ -1,7 +1,7 @@
 import React from 'react';
 import '../styles/Navigation.css';
 
-function Navigation({ currentPage, setCurrentPage }) {
+function Navigation({ currentPage, setCurrentPage, renewalCount }) {
   return (
     <nav className="navbar" data-testid="navbar">
       <div className="navbar-brand">
@@ -24,6 +24,18 @@ function Navigation({ currentPage, setCurrentPage }) {
             data-testid="nav-claims"
           >
             Claims
+          </button>
+        </li>
+        <li>
+          <button
+            className={`nav-link ${currentPage === 'renewals' ? 'active' : ''}`}
+            onClick={() => setCurrentPage('renewals')}
+            data-testid="nav-renewals"
+          >
+            Renewals
+            {renewalCount > 0 && (
+              <span className="nav-badge" data-testid="renewals-badge">{renewalCount}</span>
+            )}
           </button>
         </li>
       </ul>

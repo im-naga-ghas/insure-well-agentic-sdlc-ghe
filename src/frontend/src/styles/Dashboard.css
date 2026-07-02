@@ -262,3 +262,72 @@
   justify-content: flex-end;
   margin-top: 2rem;
 }
+
+/* ── Renewal Banner ── */
+.renewal-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 6px;
+  margin-top: 1rem;
+  font-size: 0.95rem;
+}
+
+.renewal-banner--warning {
+  background-color: #fff8e1;
+  border: 1px solid #ffca28;
+  color: #7a5c00;
+}
+
+.renewal-banner--critical {
+  background-color: #fdecea;
+  border: 1px solid #e53935;
+  color: #7f1f1b;
+}
+
+.renewal-banner__icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.renewal-banner__text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.renewal-banner__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-warning {
+  background-color: #f59e0b;
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn-warning:hover {
+  background-color: #d97706;
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  font-weight: 500;
+}
+
+.btn-outline:hover {
+  background-color: rgba(0, 0, 0, 0.06);
+}

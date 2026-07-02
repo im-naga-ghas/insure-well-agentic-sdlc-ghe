@@ -2,6 +2,63 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
 
+function getDaysUntilExpiry(endDate) {
+  if (!endDate) return null;
+  const end = new Date(endDate);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  return Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+}
+
+function RenewalBanner({ policy, apiBase }) {
+  const days = getDaysUntilExpiry(policy.endDate);
+  if (days === null || days > 30) return null;
+
+  const bannerClass = days <= 7 ? 'renewal-banner renewal-banner--critical' : 'renewal-banner renewal-banner--warning';
+
+  const handleDownloadPdf = async () => {
+    try {
+      const resp = await axios.get(`${apiBase}/renewals/${policy.id}/pdf`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([resp.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `renewal-notice-${policy.id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch {
+      alert('Failed to download PDF');
+    }
+  };
+
+  return (
+    <div className={bannerClass} data-testid="renewal-banner">
+      <span className="renewal-banner__icon">⚠️</span>
+      <span className="renewal-banner__text">
+        This policy expires in <strong>{days} day{days !== 1 ? 's' : ''}</strong> ({policy.endDate}).
+      </span>
+      <div className="renewal-banner__actions">
+        <button
+          className="btn btn-sm btn-warning"
+          onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'renewals' }))}
+          data-testid="renew-now-btn"
+        >
+          Renew Now
+        </button>
+        <button
+          className="btn btn-sm btn-outline"
+          onClick={handleDownloadPdf}
+          data-testid="download-pdf-btn"
+        >
+          ⬇ Download Renewal Notice PDF
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Dashboard({ policies, claims, onRefresh, apiBase }) {
   const [selectedPolicyId, setSelectedPolicyId] = useState(policies[0]?.id || null);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
@@ -162,6 +219,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
                 <span className="value">{selectedPolicy.endDate}</span>
               </div>
             </div>
+            <RenewalBanner policy={selectedPolicy} apiBase={apiBase} />
           </div>
 
           <div className="stats-row" data-testid="stats-row">
