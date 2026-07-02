@@ -74,3 +74,27 @@ test.describe('Claims Page', () => {
     await page.screenshot({ path: 'test-results/claims-page.png', fullPage: true });
   });
 });
+
+test.describe('Claims Empty State', () => {
+  test('shows guidance and disables claim creation when there are no policies', async ({ page }) => {
+    await page.route('**/api/policies', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    });
+    await page.route('**/api/claims', async route => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([]),
+      });
+    });
+
+    await page.goto('/');
+    await page.getByTestId('nav-claims').click();
+    await expect(page.getByTestId('claim-no-policy-empty')).toBeVisible();
+    await expect(page.getByTestId('new-claim-btn')).toBeDisabled();
+  });
+});
