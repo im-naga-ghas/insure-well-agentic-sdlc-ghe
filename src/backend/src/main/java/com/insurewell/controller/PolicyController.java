@@ -3,9 +3,11 @@ package com.insurewell.controller;
 import com.insurewell.dto.PolicyDTO;
 import com.insurewell.model.Policy;
 import com.insurewell.repository.PolicyRepository;
+import com.insurewell.security.AuthenticatedUser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -19,7 +21,6 @@ import java.util.stream.Collectors;
  */
 @RestController
 @RequestMapping("/api/policies")
-@CrossOrigin(origins = "*")
 public class PolicyController {
 
   @Autowired
@@ -52,8 +53,11 @@ public class PolicyController {
   }
 
   @GetMapping
-  public ResponseEntity<List<PolicyDTO>> getAllPolicies() {
-    List<PolicyDTO> policies = policyRepository.findAllByOrderByCreatedAtAsc()
+  public ResponseEntity<List<PolicyDTO>> getAllPolicies(Authentication authentication) {
+    AuthenticatedUser user = currentUser(authentication);
+    List<PolicyDTO> policies = (user.isAdmin()
+        ? policyRepository.findAllByOrderByCreatedAtAsc()
+        : policyRepository.findById(user.getPolicyId()).stream().toList())
       .stream()
       .map(this::toDTO)
       .collect(Collectors.toList());
@@ -61,14 +65,22 @@ public class PolicyController {
   }
 
   @GetMapping("/{id}")
-  public ResponseEntity<PolicyDTO> getPolicyById(@PathVariable String id) {
+  public ResponseEntity<PolicyDTO> getPolicyById(@PathVariable String id, Authentication authentication) {
+    if (!canAccessPolicy(authentication, id)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
     return policyRepository.findById(id)
       .map(policy -> ResponseEntity.ok(toDTO(policy)))
       .orElse(ResponseEntity.notFound().build());
   }
 
   @PostMapping
-  public ResponseEntity<PolicyDTO> createPolicy(@RequestBody PolicyDTO policyDTO) {
+  public ResponseEntity<PolicyDTO> createPolicy(@RequestBody PolicyDTO policyDTO, Authentication authentication) {
+    if (!isAdmin(authentication)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
     if (policyDTO.getHolderName() == null || policyDTO.getHolderName().trim().isEmpty()
         || policyDTO.getPlanName() == null || policyDTO.getPlanName().trim().isEmpty()
         || policyDTO.getCoverageAmount() == null || policyDTO.getCoverageAmount() <= 0) {
@@ -81,7 +93,11 @@ public class PolicyController {
   }
 
   @PatchMapping("/{id}")
-  public ResponseEntity<PolicyDTO> updatePolicy(@PathVariable String id, @RequestBody PolicyDTO policyDTO) {
+  public ResponseEntity<PolicyDTO> updatePolicy(@PathVariable String id, @RequestBody PolicyDTO policyDTO, Authentication authentication) {
+    if (!isAdmin(authentication)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
     return policyRepository.findById(id)
       .map(existing -> {
         if (policyDTO.getHolderName() != null) {
@@ -109,12 +125,29 @@ public class PolicyController {
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> deletePolicy(@PathVariable String id) {
+  public ResponseEntity<Void> deletePolicy(@PathVariable String id, Authentication authentication) {
+    if (!isAdmin(authentication)) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+
     if (policyRepository.existsById(id)) {
       policyRepository.deleteById(id);
       return ResponseEntity.noContent().build();
     }
     return ResponseEntity.notFound().build();
+  }
+
+  private AuthenticatedUser currentUser(Authentication authentication) {
+    return (AuthenticatedUser) authentication.getPrincipal();
+  }
+
+  private boolean isAdmin(Authentication authentication) {
+    return currentUser(authentication).isAdmin();
+  }
+
+  private boolean canAccessPolicy(Authentication authentication, String policyId) {
+    AuthenticatedUser user = currentUser(authentication);
+    return user.isAdmin() || policyId.equals(user.getPolicyId());
   }
 
 }

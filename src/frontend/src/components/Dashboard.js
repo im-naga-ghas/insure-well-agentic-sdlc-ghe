@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
 
-function Dashboard({ policies, claims, onRefresh, apiBase }) {
+function Dashboard({ policies, claims, onRefresh, apiBase, authConfig, currentUser }) {
   const [selectedPolicyId, setSelectedPolicyId] = useState(policies[0]?.id || null);
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
@@ -15,6 +15,13 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
     endDate: '',
   });
   const [error, setError] = useState('');
+  const canManagePolicies = currentUser.role === 'admin';
+
+  useEffect(() => {
+    if (!policies.some((policy) => policy.id === selectedPolicyId)) {
+      setSelectedPolicyId(policies[0]?.id || null);
+    }
+  }, [policies, selectedPolicyId]);
 
   const selectedPolicy = policies.find(p => p.id === selectedPolicyId);
   const policyClaims = claims.filter(c => c.policyId === selectedPolicyId);
@@ -68,24 +75,28 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
 
     try {
       if (modalMode === 'add') {
-        await axios.post(`${apiBase}/policies`, formData);
+        await axios.post(`${apiBase}/policies`, formData, authConfig);
       } else {
-        await axios.patch(`${apiBase}/policies/${selectedPolicyId}`, formData);
+        await axios.patch(`${apiBase}/policies/${selectedPolicyId}`, formData, authConfig);
       }
       setShowPolicyModal(false);
       onRefresh();
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to save policy');
+      setError(
+        err.response?.status === 403
+          ? 'Admin access is required to change policies.'
+          : err.response?.data?.error || 'Failed to save policy'
+      );
     }
   };
 
   const handleDeletePolicy = async (id, name) => {
     if (window.confirm(`Delete policy for "${name}"? All claims will be deleted.`)) {
       try {
-        await axios.delete(`${apiBase}/policies/${id}`);
+        await axios.delete(`${apiBase}/policies/${id}`, authConfig);
         onRefresh();
       } catch (err) {
-        alert('Failed to delete policy');
+        alert(err.response?.status === 403 ? 'Admin access is required to delete policies.' : 'Failed to delete policy');
       }
     }
   };
@@ -97,10 +108,18 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
           <h1>Policy Dashboard</h1>
           <p data-testid="policy-count">{policies.length} polic{policies.length === 1 ? 'y' : 'ies'} on your account</p>
         </div>
-        <button className="btn btn-primary" onClick={openAddModal} data-testid="add-policy-btn">
-          + Add Policy
-        </button>
+        {canManagePolicies && (
+          <button className="btn btn-primary" onClick={openAddModal} data-testid="add-policy-btn">
+            + Add Policy
+          </button>
+        )}
       </div>
+
+      {!canManagePolicies && (
+        <div className="info-banner" data-testid="policyholder-policy-note">
+          Policyholders can review only their own policies. Administrative policy changes are hidden.
+        </div>
+      )}
 
       {selectedPolicy && (
         <>
@@ -114,22 +133,24 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
               >
                 <span>{policy.holderName}</span>
                 <span className="policy-id">{policy.id}</span>
-                <div className="tab-actions">
-                  <button
-                    className="edit-btn"
-                    onClick={(e) => { e.stopPropagation(); openEditModal(policy); }}
-                    data-testid={`edit-policy-btn-${policy.id}`}
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="delete-btn"
-                    onClick={(e) => { e.stopPropagation(); handleDeletePolicy(policy.id, policy.holderName); }}
-                    data-testid={`delete-policy-btn-${policy.id}`}
-                  >
-                    🗑️
-                  </button>
-                </div>
+                {canManagePolicies && (
+                  <div className="tab-actions">
+                    <button
+                      className="edit-btn"
+                      onClick={(e) => { e.stopPropagation(); openEditModal(policy); }}
+                      data-testid={`edit-policy-btn-${policy.id}`}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="delete-btn"
+                      onClick={(e) => { e.stopPropagation(); handleDeletePolicy(policy.id, policy.holderName); }}
+                      data-testid={`delete-policy-btn-${policy.id}`}
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
