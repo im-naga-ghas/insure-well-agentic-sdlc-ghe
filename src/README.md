@@ -49,6 +49,17 @@ src/
 
 ## Backend
 
+**Authentication:**
+- HTTP Basic authentication is required for all policy and claim endpoints.
+- `GET /api/health` is public.
+- `GET /api/auth/me` returns the authenticated user profile and role.
+
+**Default users (local development):**
+- `admin / admin123` (role: `ADMIN`)
+- `alex / alex123` (role: `POLICYHOLDER`)
+- `maria / maria123` (role: `POLICYHOLDER`)
+- `david / david123` (role: `POLICYHOLDER`)
+
 **REST API Endpoints:**
 
 | Method | Endpoint                     | Description                  |
