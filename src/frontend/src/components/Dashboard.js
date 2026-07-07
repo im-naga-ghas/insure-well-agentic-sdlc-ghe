@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
+import RenewalReminderBanner from './RenewalReminderBanner';
 
 function Dashboard({ policies, claims, onRefresh, apiBase }) {
   const [selectedPolicyId, setSelectedPolicyId] = useState(policies[0]?.id || null);
@@ -104,6 +105,8 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
 
       {selectedPolicy && (
         <>
+          <RenewalReminderBanner apiBase={apiBase} onSelectPolicy={setSelectedPolicyId} />
+
           <div className="policy-tabs" data-testid="policy-tabs">
             {policies.map(policy => (
               <div

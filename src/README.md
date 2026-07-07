@@ -151,6 +151,7 @@ The frontend will open on **http://localhost:3000** and automatically connect to
 |---------|-------------------------------|------------------------------------|
 | `GET`   | `/api/health`                 | Health check                       |
 | `GET`   | `/api/policies`               | List all policies                  |
+| `GET`   | `/api/policies/expiring?days=N` | List active policies expiring within N days (default 30) |
 | `POST`  | `/api/policies`               | Create a policy                    |
 | `GET`   | `/api/policies/{id}`          | Get a single policy                |
 | `PATCH` | `/api/policies/{id}`          | Update a policy                    |

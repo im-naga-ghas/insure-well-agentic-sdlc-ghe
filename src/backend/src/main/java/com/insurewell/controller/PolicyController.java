@@ -7,7 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
@@ -58,6 +60,34 @@ public class PolicyController {
       .map(this::toDTO)
       .collect(Collectors.toList());
     return ResponseEntity.ok(policies);
+  }
+
+  @GetMapping("/expiring")
+  public ResponseEntity<List<PolicyDTO>> getExpiringPolicies(@RequestParam(defaultValue = "30") int days) {
+    if (days < 1) {
+      return ResponseEntity.badRequest().build();
+    }
+
+    LocalDate today = LocalDate.now();
+    LocalDate cutoffDate = today.plusDays(days);
+
+    List<PolicyDTO> policies = policyRepository.findAllByOrderByCreatedAtAsc()
+      .stream()
+      .filter(policy -> "active".equalsIgnoreCase(policy.getStatus()))
+      .filter(policy -> isWithinWindow(policy.getEndDate(), today, cutoffDate))
+      .map(this::toDTO)
+      .collect(Collectors.toList());
+
+    return ResponseEntity.ok(policies);
+  }
+
+  private boolean isWithinWindow(String endDate, LocalDate today, LocalDate cutoffDate) {
+    try {
+      LocalDate parsedEndDate = LocalDate.parse(endDate);
+      return !parsedEndDate.isBefore(today) && !parsedEndDate.isAfter(cutoffDate);
+    } catch (DateTimeParseException ex) {
+      return false;
+    }
   }
 
   @GetMapping("/{id}")
