@@ -3,6 +3,7 @@ package com.insurewell.controller;
 import com.insurewell.dto.PolicyDTO;
 import com.insurewell.model.Policy;
 import com.insurewell.repository.PolicyRepository;
+import com.insurewell.service.RenewalReminderPdfService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,6 +25,9 @@ public class PolicyController {
 
   @Autowired
   private PolicyRepository policyRepository;
+
+  @Autowired
+  private RenewalReminderPdfService renewalReminderPdfService;
 
   private PolicyDTO toDTO(Policy policy) {
     return PolicyDTO.builder()
@@ -115,6 +119,23 @@ public class PolicyController {
       return ResponseEntity.noContent().build();
     }
     return ResponseEntity.notFound().build();
+  }
+
+  @GetMapping("/{id}/renewal-reminder/pdf")
+  public ResponseEntity<byte[]> getRenewalReminderPdf(@PathVariable String id) {
+    return policyRepository.findById(id)
+      .map(policy -> {
+        try {
+          byte[] pdfBytes = renewalReminderPdfService.generateRenewalReminderPdf(policy);
+          return ResponseEntity.ok()
+            .header("Content-Type", "application/pdf")
+            .header("Content-Disposition", "attachment; filename=\"renewal-reminder-" + id + ".pdf\"")
+            .body(pdfBytes);
+        } catch (Exception e) {
+          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).<byte[]>build();
+        }
+      })
+      .orElse(ResponseEntity.notFound().build());
   }
 
 }

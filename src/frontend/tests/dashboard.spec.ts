@@ -77,4 +77,41 @@ test.describe('Policy Dashboard', () => {
   test('recent claims table is visible when a policy is selected', async ({ page }) => {
     await expect(page.getByTestId('recent-claims-table')).toBeVisible();
   });
+
+  test('selecting POL-2024-001 displays renewal reminder banner and download button in both banner and card', async ({ page }) => {
+    await page.getByTestId('policy-tab-POL-2024-001').click();
+    await expect(page.getByTestId('renewal-reminder-banner')).toBeVisible();
+    
+    // Download button in renewal reminder banner
+    const bannerDownloadBtn = page.getByTestId('renewal-reminder-banner').getByTestId('download-reminder-btn-POL-2024-001');
+    await expect(bannerDownloadBtn).toBeVisible();
+
+    // Download button in policy card
+    const cardDownloadBtn = page.getByTestId('policy-card').getByTestId('download-reminder-btn-POL-2024-001');
+    await expect(cardDownloadBtn).toBeVisible();
+  });
+
+  test('selecting POL-2023-009 displays renewal reminder banner with expired message and download button in banner, but not in card', async ({ page }) => {
+    await page.getByTestId('policy-tab-POL-2023-009').click();
+    await expect(page.getByTestId('renewal-reminder-banner')).toBeVisible();
+    await expect(page.getByTestId('renewal-reminder-banner')).toContainText('Policy Expired');
+    await expect(page.getByTestId('renewal-reminder-banner')).toContainText('This policy is no longer active. Please renew immediately to remain covered.');
+
+    // Download button in renewal reminder banner
+    const bannerDownloadBtn = page.getByTestId('renewal-reminder-banner').getByTestId('download-reminder-btn-POL-2023-009');
+    await expect(bannerDownloadBtn).toBeVisible();
+
+    // Download button should NOT be in the policy card (since it's inactive)
+    const cardDownloadBtn = page.getByTestId('policy-card').getByTestId('download-reminder-btn-POL-2023-009');
+    await expect(cardDownloadBtn).not.toBeVisible();
+  });
+
+  test('selecting POL-2024-002 does not display renewal reminder banner, but displays download button inside the policy card', async ({ page }) => {
+    await page.getByTestId('policy-tab-POL-2024-002').click();
+    await expect(page.getByTestId('renewal-reminder-banner')).not.toBeVisible();
+
+    // Download button inside the policy card
+    const cardDownloadBtn = page.getByTestId('policy-card').getByTestId('download-reminder-btn-POL-2024-002');
+    await expect(cardDownloadBtn).toBeVisible();
+  });
 });

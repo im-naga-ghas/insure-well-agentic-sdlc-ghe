@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
+import RenewalReminderBanner from './RenewalReminderBanner';
 
 function Dashboard({ policies, claims, onRefresh, apiBase }) {
   const [selectedPolicyId, setSelectedPolicyId] = useState(policies[0]?.id || null);
@@ -15,6 +16,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
     endDate: '',
   });
   const [error, setError] = useState('');
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
 
   const selectedPolicy = policies.find(p => p.id === selectedPolicyId);
   const policyClaims = claims.filter(c => c.policyId === selectedPolicyId);
@@ -90,6 +92,30 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
     }
   };
 
+  const handleDownloadPdf = async () => {
+    if (!selectedPolicy) return;
+    setIsDownloadingPdf(true);
+    try {
+      const response = await axios.get(`${apiBase}/policies/${selectedPolicy.id}/renewal-reminder/pdf`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `renewal-reminder-${selectedPolicy.id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading renewal reminder:', error);
+      alert('Failed to download renewal reminder PDF');
+    } finally {
+      setIsDownloadingPdf(false);
+    }
+  };
+
   return (
     <div className="dashboard-container" data-testid="dashboard">
       <div className="page-header">
@@ -134,15 +160,30 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
             ))}
           </div>
 
+          <RenewalReminderBanner policy={selectedPolicy} apiBase={apiBase} />
+
           <div className="policy-card" data-testid="policy-card">
             <div className="policy-header">
               <div>
                 <p className="policy-plan">{selectedPolicy.planName}</p>
                 <p className="policy-id">Policy ID: {selectedPolicy.id}</p>
               </div>
-              <span className={`badge ${selectedPolicy.status === 'active' ? 'success' : 'neutral'}`}>
-                {selectedPolicy.status.toUpperCase()}
-              </span>
+              <div className="policy-header-actions">
+                {selectedPolicy.status === 'active' && (
+                  <button
+                    onClick={handleDownloadPdf}
+                    disabled={isDownloadingPdf}
+                    className="btn-download-reminder"
+                    data-testid={`download-reminder-btn-${selectedPolicy.id}`}
+                    aria-label={`Download renewal reminder for ${selectedPolicy.holderName}`}
+                  >
+                    {isDownloadingPdf ? '⏳ Loading...' : '📄 Download Reminder'}
+                  </button>
+                )}
+                <span className={`badge ${selectedPolicy.status === 'active' ? 'success' : 'neutral'}`}>
+                  {selectedPolicy.status.toUpperCase()}
+                </span>
+              </div>
             </div>
             <div className="policy-details">
               <div className="detail">
@@ -224,7 +265,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
           <div className="modal-content" onClick={e => e.stopPropagation()} data-testid="policy-modal">
             <h2>{modalMode === 'add' ? 'Add Policy' : 'Edit Policy'}</h2>
             {error && <div className="alert alert-error" data-testid="policy-form-error">{error}</div>}
-            <form onSubmit={handleSavePolicy} data-testid="policy-form">
+            <form onSubmit={handleSavePolicy} data-testid="policy-form" noValidate>
               <div className="form-group">
                 <label>Holder Name</label>
                 <input

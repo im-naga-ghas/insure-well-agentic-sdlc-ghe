@@ -262,3 +262,111 @@
   justify-content: flex-end;
   margin-top: 2rem;
 }
+
+/* Renewal Reminder Styles */
+.renewal-reminder-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+  gap: 1.5rem;
+}
+
+.renewal-reminder-banner.expired {
+  background-color: #fdf2f2;
+  border: 1px solid #f8b4b4;
+  color: #9b1c1c;
+}
+
+.renewal-reminder-banner.expiring {
+  background-color: #fefaf0;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.banner-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.banner-text-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.banner-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.banner-text {
+  font-size: 0.95rem;
+}
+
+.banner-actions {
+  display: flex;
+  gap: 1rem;
+  flex-shrink: 0;
+}
+
+.btn-renew, .btn-download-reminder {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  border: none;
+}
+
+.btn-renew {
+  background-color: #0066cc;
+  color: white;
+}
+
+.btn-renew:hover {
+  background-color: #0052a3;
+}
+
+.btn-download-reminder {
+  background-color: #e2e8f0;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-download-reminder:hover:not(:disabled) {
+  background-color: #cbd5e1;
+}
+
+.btn-download-reminder:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.policy-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .renewal-reminder-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .banner-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
