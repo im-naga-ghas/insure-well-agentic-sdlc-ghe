@@ -48,6 +48,8 @@ public class SecurityConfig {
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
       .cors(Customizer.withDefaults())
+      // Stateless API: callers authenticate with a token in the Authorization header rather than
+      // with cookies or a session, so there is no CSRF attack surface to protect.
       .csrf(csrf -> csrf.disable())
       .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(requests -> {
