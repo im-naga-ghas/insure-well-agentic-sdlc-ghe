@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>InsureWell — Microsoft Entra ID Authentication</title>
+<style>
+  body { font-family: "DejaVu Sans", Arial, Helvetica, sans-serif; color: #222; font-size: 11pt; line-height: 1.5; }
+  h1 { color: #1a5490; font-size: 24pt; margin-bottom: 0.2rem; }
+  h2 { color: #1a5490; font-size: 15pt; margin-top: 1.6rem; border-bottom: 2px solid #e3e9f0; padding-bottom: 0.2rem; }
+  h3 { font-size: 12pt; margin-bottom: 0.3rem; }
+  .subtitle { color: #666; font-size: 11pt; margin-top: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 0.6rem 0 1rem; font-size: 9.5pt; }
+  th, td { border: 1px solid #d5dde5; padding: 6px 8px; text-align: left; vertical-align: top; }
+  th { background: #f0f4f8; }
+  code { background: #f4f6f9; padding: 1px 4px; border-radius: 3px; font-family: "DejaVu Sans Mono", monospace; font-size: 9pt; }
+  pre { background: #f4f6f9; border: 1px solid #e2e8ef; border-radius: 4px; padding: 10px; font-size: 9pt; overflow-x: auto; font-family: "DejaVu Sans Mono", monospace; }
+  figure { margin: 0 0 1.2rem; page-break-inside: avoid; }
+  figure img { width: 100%; border: 1px solid #d5dde5; border-radius: 4px; }
+  figcaption { font-size: 9.5pt; color: #666; margin-top: 0.35rem; }
+  ul { margin-top: 0.3rem; }
+  .page-break { page-break-before: always; }
+  .meta { font-size: 9.5pt; color: #666; }
+</style>
+</head>
+<body>
+
+<h1>InsureWell — Authentication with Microsoft Entra ID</h1>
+<p class="subtitle">Change documentation · React 18 SPA + Spring Boot 3.1 API</p>
+<p class="meta">Issue: “Implement Authentication with Azure AD” — use Microsoft Entra ID and the latest Microsoft Identity features.</p>
+
+<h2>1. Summary of the change</h2>
+<p>
+InsureWell now authenticates users with <strong>Microsoft Entra ID</strong> (formerly Azure AD) on the Microsoft identity
+platform v2.0 endpoint. The React SPA signs users in with <strong>MSAL</strong>
+(<code>@azure/msal-browser</code> and <code>@azure/msal-react</code>) using the authorization code flow with PKCE, and
+attaches the resulting access token to every API call. The Spring Boot API is an <strong>OAuth 2.0 resource server</strong>
+that validates the token signature against the tenant JWKS endpoint and checks the issuer and audience claims before
+serving policy or claim data.
+</p>
+<ul>
+  <li>No passwords, secrets or tokens are stored by InsureWell; tokens live in <code>sessionStorage</code> only.</li>
+  <li>App roles (<code>roles</code>) and delegated scopes (<code>scp</code>) are mapped to Spring Security authorities,
+      ready for fine-grained authorisation.</li>
+  <li>Authentication is configuration-driven: with no tenant configured the app keeps running unauthenticated for
+      local development against the seeded H2 data.</li>
+</ul>
+
+<h2>2. Authentication flow</h2>
+<pre>Browser (React SPA)                Microsoft Entra ID                 InsureWell API
+      |                                    |                                  |
+      |-- loginRedirect (PKCE) ----------->|                                  |
+      |<-- id_token + code ----------------|                                  |
+      |-- acquireTokenSilent ------------->|                                  |
+      |<-- access_token (aud = API) -------|                                  |
+      |-- GET /api/policies  Authorization: token ---------------------------->|
+      |                                    |<-- JWKS (signature keys) --------|
+      |<-- 200 policies / 401 invalid token ----------------------------------|
+</pre>
+
+<h2>3. Backend changes (Spring Boot 3.1, Java 17)</h2>
+<table>
+  <tr><th>File</th><th>Purpose</th></tr>
+  <tr><td><code>security/SecurityConfig.java</code></td><td>Stateless filter chain, CORS, public endpoints, resource-server JWT configuration.</td></tr>
+  <tr><td><code>security/EntraIdProperties.java</code></td><td>Binds <code>insurewell.security.*</code>; derives issuer and JWKS URIs and accepted audiences.</td></tr>
+  <tr><td><code>security/AudienceValidator.java</code></td><td>Rejects tokens issued for another API (<code>aud</code> claim check).</td></tr>
+  <tr><td><code>security/EntraIdAuthoritiesConverter.java</code></td><td>Maps <code>roles</code> to <code>ROLE_*</code> and <code>scp</code> to <code>SCOPE_*</code> authorities.</td></tr>
+  <tr><td><code>controller/UserController.java</code></td><td>New <code>GET /api/me</code> endpoint returning the caller's identity claims.</td></tr>
+  <tr><td><code>pom.xml</code></td><td>Adds <code>spring-boot-starter-oauth2-resource-server</code> and <code>spring-security-test</code>.</td></tr>
+</table>
+
+<h3>Endpoint protection</h3>
+<table>
+  <tr><th>Endpoint</th><th>Access</th></tr>
+  <tr><td><code>GET /api</code>, <code>GET /api/health</code></td><td>Anonymous (discovery and monitoring)</td></tr>
+  <tr><td><code>/api/policies/**</code>, <code>/api/claims/**</code>, <code>/api/me</code></td><td>Valid Entra ID access token required</td></tr>
+</table>
+
+<h3>Configuration</h3>
+<table>
+  <tr><th>Property</th><th>Environment variable</th><th>Description</th></tr>
+  <tr><td><code>insurewell.security.mode</code></td><td><code>INSUREWELL_SECURITY_MODE</code></td><td><code>auto</code> (default), <code>on</code>, <code>off</code></td></tr>
+  <tr><td><code>insurewell.security.tenant-id</code></td><td><code>AZURE_TENANT_ID</code></td><td>Directory (tenant) id</td></tr>
+  <tr><td><code>insurewell.security.client-id</code></td><td><code>AZURE_CLIENT_ID</code></td><td>API application (client) id — expected audience</td></tr>
+  <tr><td><code>insurewell.security.instance</code></td><td><code>AZURE_CLOUD_INSTANCE</code></td><td>Cloud authority, default <code>https://login.microsoftonline.com</code></td></tr>
+  <tr><td><code>insurewell.security.allowed-origins</code></td><td><code>CORS_ALLOWED_ORIGINS</code></td><td>Browser origins allowed to call the API</td></tr>
+</table>
+
+<div class="page-break"></div>
+<h2>4. Frontend changes (React 18 + MSAL)</h2>
+<table>
+  <tr><th>File</th><th>Purpose</th></tr>
+  <tr><td><code>src/authConfig.js</code></td><td>MSAL configuration (authority, redirect URI, sessionStorage cache) and API scope.</td></tr>
+  <tr><td><code>src/apiClient.js</code></td><td>Axios instance that acquires a token silently and adds the authorization header; falls back to a redirect when interaction is required.</td></tr>
+  <tr><td><code>src/index.js</code></td><td>Initialises MSAL, handles the redirect response, sets the active account and wraps the app in <code>MsalProvider</code>.</td></tr>
+  <tr><td><code>src/components/SignIn.js</code></td><td>Sign-in screen shown to unauthenticated users.</td></tr>
+  <tr><td><code>src/components/UserMenu.js</code></td><td>Signed-in user name and sign-out action in the navigation bar.</td></tr>
+  <tr><td><code>src/App.js</code>, <code>Dashboard.js</code>, <code>Claims.js</code></td><td>All API traffic routed through the authenticated client; 401/403 responses surface a clear message.</td></tr>
+  <tr><td><code>.env.example</code></td><td>Template for the SPA app-registration settings.</td></tr>
+</table>
+
+<pre>REACT_APP_AZURE_TENANT_ID=&lt;tenant-id&gt;
+REACT_APP_AZURE_CLIENT_ID=&lt;spa-client-id&gt;
+REACT_APP_AZURE_API_SCOPE=api://&lt;backend-client-id&gt;/access_as_user</pre>
+
+<h2>5. UI screens</h2>
+
+<figure>
+  <img src="../images/auth/signin-entra-id.png" alt="InsureWell sign-in screen" />
+  <figcaption><strong>Screen 1 — Sign in.</strong> When Entra ID is configured, unauthenticated users see the sign-in
+  screen; “Sign in with Microsoft” starts the MSAL redirect flow to the Microsoft identity platform.</figcaption>
+</figure>
+
+<figure>
+  <img src="../images/auth/dashboard-authenticated.png" alt="InsureWell policy dashboard" />
+  <figcaption><strong>Screen 2 — Policy dashboard.</strong> After sign-in the dashboard loads policies through the
+  authenticated API client; the navigation bar shows the signed-in user and a sign-out action.</figcaption>
+</figure>
+
+<figure>
+  <img src="../images/auth/claims-authenticated.png" alt="InsureWell claims screen" />
+  <figcaption><strong>Screen 3 — Claims.</strong> Claim submission and status updates carry the same access token, so
+  the API can authorise each operation.</figcaption>
+</figure>
+
+<h2>6. Verification</h2>
+<ul>
+  <li><code>SecurityEnabledTest</code> — public health endpoint stays open, policies/claims/<code>me</code> return
+      <strong>401</strong> without a token, and <code>/api/me</code> returns the token claims with one.</li>
+  <li><code>SecurityDisabledTest</code> — with <code>mode=off</code> the API stays open for local development.</li>
+  <li><code>EntraIdSecurityUnitTest</code> — audience validation, issuer/JWKS URI derivation and role/scope mapping.</li>
+  <li>Manual run: with tenant and client id set, <code>GET /api/policies</code> returned <code>401</code> with a
+      <code>WWW-Authenticate</code> challenge; without them the seeded data still loads.</li>
+  <li>Frontend production build compiles successfully with and without the Entra ID environment variables.</li>
+</ul>
+
+<h2>7. Entra ID app registration checklist</h2>
+<ul>
+  <li>Register an <strong>API</strong> application; expose a scope such as <code>access_as_user</code>.</li>
+  <li>Register the <strong>SPA</strong> application with platform “Single-page application” and redirect URI
+      <code>http://localhost:3000</code> (plus the deployed origin).</li>
+  <li>Grant the SPA delegated permission to the API scope and admin-consent it.</li>
+  <li>Optionally define app roles (for example <code>Claims.Approve</code>) — they arrive as <code>ROLE_*</code> authorities.</li>
+  <li>Set the backend and frontend environment variables listed above.</li>
+</ul>
+
+</body>
+</html>
