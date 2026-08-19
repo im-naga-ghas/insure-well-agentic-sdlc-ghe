@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { apiClient } from '../apiClient';
 import '../styles/Dashboard.css';
 
 function Dashboard({ policies, claims, onRefresh, apiBase }) {
@@ -68,9 +68,9 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
 
     try {
       if (modalMode === 'add') {
-        await axios.post(`${apiBase}/policies`, formData);
+        await apiClient.post(`${apiBase}/policies`, formData);
       } else {
-        await axios.patch(`${apiBase}/policies/${selectedPolicyId}`, formData);
+        await apiClient.patch(`${apiBase}/policies/${selectedPolicyId}`, formData);
       }
       setShowPolicyModal(false);
       onRefresh();
@@ -82,7 +82,7 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
   const handleDeletePolicy = async (id, name) => {
     if (window.confirm(`Delete policy for "${name}"? All claims will be deleted.`)) {
       try {
-        await axios.delete(`${apiBase}/policies/${id}`);
+        await apiClient.delete(`${apiBase}/policies/${id}`);
         onRefresh();
       } catch (err) {
         alert('Failed to delete policy');

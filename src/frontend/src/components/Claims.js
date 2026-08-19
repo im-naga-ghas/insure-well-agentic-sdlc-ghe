@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import { apiClient } from '../apiClient';
 import '../styles/Claims.css';
 
 function Claims({ policies, claims, onRefresh, apiBase }) {
@@ -46,7 +46,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
       payload.append('amount', String(parseFloat(formData.amount)));
       payload.append('description', formData.description);
 
-      await axios.post(`${apiBase}/claims`, payload);
+      await apiClient.post(`${apiBase}/claims`, payload);
       setShowForm(false);
       setFormData({
         policy_id: policies[0]?.id || '',
@@ -63,7 +63,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
 
   const handleStatusChange = async (claimId, newStatus) => {
     try {
-      await axios.patch(`${apiBase}/claims/${claimId}/status`, { status: newStatus });
+      await apiClient.patch(`${apiBase}/claims/${claimId}/status`, { status: newStatus });
       onRefresh();
     } catch (err) {
       alert('Failed to update claim status');
@@ -73,7 +73,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
   const handleDeleteClaim = async (claimId) => {
     if (window.confirm('Delete this claim?')) {
       try {
-        await axios.delete(`${apiBase}/claims/${claimId}`);
+        await apiClient.delete(`${apiBase}/claims/${claimId}`);
         onRefresh();
       } catch (err) {
         alert('Failed to delete claim');

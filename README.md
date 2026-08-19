@@ -9,6 +9,7 @@ A lightweight health insurance management system built with a **React** frontend
 - **Policy Dashboard** — view policy details (ID, plan name, coverage amount, status, dates) with per-policy stats and recent claims
 - **Multi-policy support** — clickable tabs to switch between policies without a page reload
 - **Claims Module** — submit claims (amount, description, optional file upload), filter by policy, and track status (Pending / Approved / Rejected)
+- **Authentication** — sign in with Microsoft Entra ID (MSAL in the SPA, OAuth 2.0 resource server in the API)
 - **REST API** — JSON endpoints for policy and claim operations
 - **Seeded sample data** — H2-backed backend starts with sample policies and claims for local development
 
@@ -77,6 +78,7 @@ The backend API runs on **http://localhost:8080/api** and is seeded with sample 
 - Source tree [src/README.md](src/README.md): architecture, detailed backend/frontend commands, API reference, sample data, and development notes
 - Architecture docs [docs/InsureWell_HLD.md](docs/InsureWell_HLD.md) and [docs/InsureWell_DataModel.md](docs/InsureWell_DataModel.md): system design and data model
 - Workflow guides under [handbook](handbook): setup and demo flow material
+- Authentication change record [docs/InsureWell_EntraID_Authentication.pdf](docs/InsureWell_EntraID_Authentication.pdf): Entra ID design, configuration and UI screens
 
 ---
 
