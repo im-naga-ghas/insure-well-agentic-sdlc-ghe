@@ -7,8 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -57,6 +59,27 @@ public class PolicyController {
       .stream()
       .map(this::toDTO)
       .collect(Collectors.toList());
+    return ResponseEntity.ok(policies);
+  }
+
+  @GetMapping("/expiring-soon")
+  public ResponseEntity<List<PolicyDTO>> getExpiringSoonPolicies() {
+    LocalDate today = LocalDate.now();
+    LocalDate cutoffDate = today.plusDays(30);
+
+    List<PolicyDTO> policies = policyRepository.findAllByOrderByCreatedAtAsc()
+      .stream()
+      .filter(policy -> {
+        try {
+          LocalDate endDate = LocalDate.parse(policy.getEndDate());
+          return !endDate.isBefore(today) && !endDate.isAfter(cutoffDate);
+        } catch (DateTimeParseException ex) {
+          return false;
+        }
+      })
+      .map(this::toDTO)
+      .collect(Collectors.toList());
+
     return ResponseEntity.ok(policies);
   }
 

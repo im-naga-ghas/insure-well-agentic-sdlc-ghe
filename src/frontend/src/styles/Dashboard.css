@@ -20,6 +20,32 @@
   color: #666;
 }
 
+.renewal-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  background-color: #fff8e1;
+  border: 1px solid #ffe08a;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.renewal-banner-content p {
+  margin-top: 0.35rem;
+  color: #5c4b00;
+}
+
+.renewal-banner-content a {
+  color: #0052a3;
+  font-weight: 600;
+}
+
+.renewal-dismiss-btn {
+  white-space: nowrap;
+}
+
 .policy-tabs {
   display: flex;
   gap: 1rem;

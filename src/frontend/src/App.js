@@ -11,6 +11,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
   const [policies, setPolicies] = useState([]);
   const [claims, setClaims] = useState([]);
+  const [expiringPolicies, setExpiringPolicies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -21,12 +22,14 @@ function App() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [policiesRes, claimsRes] = await Promise.all([
+      const [policiesRes, claimsRes, expiringPoliciesRes] = await Promise.all([
         axios.get(`${API_BASE_URL}/policies`),
         axios.get(`${API_BASE_URL}/claims`),
+        axios.get(`${API_BASE_URL}/policies/expiring-soon`),
       ]);
       setPolicies(policiesRes.data);
       setClaims(claimsRes.data);
+      setExpiringPolicies(expiringPoliciesRes.data);
       setError(null);
     } catch (err) {
       setError('Failed to load data from backend. Ensure Spring Boot server is running on port 8080.');
@@ -70,6 +73,7 @@ function App() {
           <Dashboard
             policies={policies}
             claims={claims}
+            expiringPolicies={expiringPolicies}
             onRefresh={refreshData}
             apiBase={API_BASE_URL}
           />
