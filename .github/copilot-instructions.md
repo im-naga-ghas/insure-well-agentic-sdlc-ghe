@@ -29,5 +29,4 @@
 - If no significant issues are found, state that clearly and mention any remaining test gaps or residual risks.
 
 # Tech Stack
-- Use C# latest frame work for Backend
-- Use Angular latest for front end
+- Use Java 17 with Spring Boot 3.1 for backend, React 18 for frontend.
