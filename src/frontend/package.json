@@ -4,10 +4,12 @@
   "description": "InsureWell React UI for health insurance management",
   "private": true,
   "dependencies": {
+    "@azure/msal-browser": "^5.19.0",
+    "@azure/msal-react": "^5.6.0",
+    "axios": "^1.6.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "axios": "^1.6.0"
+    "react-scripts": "5.0.1"
   },
   "scripts": {
     "start": "react-scripts start",

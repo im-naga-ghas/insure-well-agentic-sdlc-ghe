@@ -1,5 +1,6 @@
 import React from 'react';
 import '../styles/Navigation.css';
+import UserMenu from './UserMenu';
 
 function Navigation({ currentPage, setCurrentPage }) {
   return (
@@ -27,6 +28,7 @@ function Navigation({ currentPage, setCurrentPage }) {
           </button>
         </li>
       </ul>
+      <UserMenu />
     </nav>
   );
 }

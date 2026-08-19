@@ -62,6 +62,33 @@ src/
 | POST   | `/api/claims`                | Submit a claim               |
 | PATCH  | `/api/claims/{id}/status`    | Update claim status          |
 | DELETE | `/api/claims/{id}`           | Delete a claim               |
+| GET    | `/api/me`                    | Signed-in user (Entra ID claims) |
+
+`/api`, `/api/health` are anonymous; every other endpoint requires a Microsoft Entra ID access token once authentication is enabled.
+
+## Authentication (Microsoft Entra ID)
+
+The API is an OAuth 2.0 resource server and the React SPA uses MSAL (Microsoft Authentication Library) with the authorization code flow and PKCE. Access tokens are Microsoft identity platform v2.0 tokens; the backend validates signature, issuer and audience and maps app roles (`roles`) and scopes (`scp`) to Spring Security authorities.
+
+**Backend configuration** (`src/backend/src/main/resources/application.properties` or environment variables):
+
+| Property | Environment variable | Description |
+|----------|----------------------|-------------|
+| `insurewell.security.mode` | `INSUREWELL_SECURITY_MODE` | `auto` (default: on when tenant and client id are set), `on`, `off` |
+| `insurewell.security.tenant-id` | `AZURE_TENANT_ID` | Directory (tenant) id |
+| `insurewell.security.client-id` | `AZURE_CLIENT_ID` | API application (client) id, used as expected audience |
+| `insurewell.security.instance` | `AZURE_CLOUD_INSTANCE` | Cloud authority, defaults to `https://login.microsoftonline.com` |
+| `insurewell.security.allowed-origins` | `CORS_ALLOWED_ORIGINS` | Allowed browser origins |
+
+**Frontend configuration** (`src/frontend/.env`, see `.env.example`):
+
+```bash
+REACT_APP_AZURE_TENANT_ID=<tenant-id>
+REACT_APP_AZURE_CLIENT_ID=<spa-client-id>
+REACT_APP_AZURE_API_SCOPE=api://<backend-client-id>/access_as_user
+```
+
+Without these values the app runs unauthenticated, which keeps local development against the seeded H2 data unchanged.
 
 **Database:**
 - In-memory H2 database (development)
