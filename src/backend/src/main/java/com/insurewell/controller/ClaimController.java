@@ -29,6 +29,10 @@ public class ClaimController {
   @Autowired
   private PolicyRepository policyRepository;
 
+  private ResponseEntity<Map<String, String>> error(HttpStatus status, String message) {
+    return ResponseEntity.status(status).body(Map.of("error", message));
+  }
+
   private ClaimDTO toDTO(Claim claim) {
     return ClaimDTO.builder()
       .id(claim.getId())
@@ -64,19 +68,19 @@ public class ClaimController {
       @RequestParam String policy_id,
       @RequestParam Double amount,
       @RequestParam String description) {
+    String policyId = policy_id == null ? null : policy_id.trim();
+    String claimDescription = description == null ? null : description.trim();
 
     // Validate input
-    if (policy_id == null || policy_id.trim().isEmpty()
+    if (policyId == null || policyId.isEmpty()
         || amount == null || amount <= 0
-        || description == null || description.trim().isEmpty()) {
-      return ResponseEntity.badRequest()
-        .body(Map.of("error", "policy_id, amount, and description are required"));
+        || claimDescription == null || claimDescription.isEmpty()) {
+      return error(HttpStatus.BAD_REQUEST, "policy_id, amount, and description are required");
     }
 
     // Check if policy exists
-    if (!policyRepository.existsById(policy_id)) {
-      return ResponseEntity.status(HttpStatus.NOT_FOUND)
-        .body(Map.of("error", "Policy not found"));
+    if (!policyRepository.existsById(policyId)) {
+      return error(HttpStatus.NOT_FOUND, "Policy not found");
     }
 
     LocalDateTime now = LocalDateTime.now();
@@ -84,9 +88,9 @@ public class ClaimController {
 
     Claim claim = Claim.builder()
       .id(claimId)
-      .policyId(policy_id)
+      .policyId(policyId)
       .amount(amount)
-      .description(description)
+      .description(claimDescription)
       .status("Pending")
       .fileName(null) // File upload would be handled separately
       .submittedAt(now)
@@ -101,30 +105,29 @@ public class ClaimController {
   public ResponseEntity<?> updateClaimStatus(
       @PathVariable String id,
       @RequestBody Map<String, String> body) {
-
-    String status = body.get("status");
+    String status = body == null ? null : body.get("status");
     if (status == null || (!status.equals("Pending") && !status.equals("Approved") && !status.equals("Rejected"))) {
-      return ResponseEntity.badRequest()
-        .body(Map.of("error", "Status must be one of: Pending, Approved, Rejected"));
+      return error(HttpStatus.BAD_REQUEST, "Status must be one of: Pending, Approved, Rejected");
     }
 
-    return claimRepository.findById(id)
-      .map(claim -> {
-        claim.setStatus(status);
-        claim.setUpdatedAt(LocalDateTime.now());
-        Claim updated = claimRepository.save(claim);
-        return ResponseEntity.ok(toDTO(updated));
-      })
-      .orElse(ResponseEntity.notFound().build());
+    Claim claim = claimRepository.findById(id).orElse(null);
+    if (claim == null) {
+      return error(HttpStatus.NOT_FOUND, "Claim not found");
+    }
+
+    claim.setStatus(status);
+    claim.setUpdatedAt(LocalDateTime.now());
+    Claim updated = claimRepository.save(claim);
+    return ResponseEntity.ok(toDTO(updated));
   }
 
   @DeleteMapping("/{id}")
-  public ResponseEntity<Void> deleteClaim(@PathVariable String id) {
+  public ResponseEntity<?> deleteClaim(@PathVariable String id) {
     if (claimRepository.existsById(id)) {
       claimRepository.deleteById(id);
       return ResponseEntity.noContent().build();
     }
-    return ResponseEntity.notFound().build();
+    return error(HttpStatus.NOT_FOUND, "Claim not found");
   }
 
   @GetMapping("/health")

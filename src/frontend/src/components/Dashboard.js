@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
 
@@ -15,12 +15,60 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
     endDate: '',
   });
   const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
 
   const selectedPolicy = policies.find(p => p.id === selectedPolicyId);
   const policyClaims = claims.filter(c => c.policyId === selectedPolicyId);
   const pendingCount = policyClaims.filter(c => c.status === 'Pending').length;
   const approvedCount = policyClaims.filter(c => c.status === 'Approved').length;
   const totalClaimed = policyClaims.reduce((sum, c) => sum + c.amount, 0);
+
+  useEffect(() => {
+    if (policies.length === 0) {
+      setSelectedPolicyId(null);
+      return;
+    }
+
+    if (!selectedPolicyId || !policies.some(p => p.id === selectedPolicyId)) {
+      setSelectedPolicyId(policies[0].id);
+    }
+  }, [policies, selectedPolicyId]);
+
+  const parseDate = (value) => {
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+    if (!datePattern.test(value)) {
+      return null;
+    }
+
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const getPolicyValidationError = (payload) => {
+    if (!payload.holderName || !payload.planName || !payload.coverageAmount || !payload.status || !payload.startDate || !payload.endDate) {
+      return 'All fields are required';
+    }
+
+    if (!Number.isFinite(payload.coverageAmount) || payload.coverageAmount <= 0) {
+      return 'Coverage amount must be greater than 0';
+    }
+
+    if (!['active', 'inactive'].includes(payload.status)) {
+      return 'Status must be active or inactive';
+    }
+
+    const start = parseDate(payload.startDate);
+    const end = parseDate(payload.endDate);
+    if (!start || !end) {
+      return 'Dates must be in YYYY-MM-DD format';
+    }
+
+    if (end < start) {
+      return 'End date must be on or after start date';
+    }
+
+    return '';
+  };
 
   const openAddModal = () => {
     setModalMode('add');
@@ -60,19 +108,31 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
 
   const handleSavePolicy = async (e) => {
     e.preventDefault();
+    setActionError('');
 
-    if (!formData.holderName || !formData.planName || !formData.coverageAmount) {
-      setError('All fields are required');
+    const payload = {
+      holderName: formData.holderName.trim(),
+      planName: formData.planName.trim(),
+      coverageAmount: Number(formData.coverageAmount),
+      status: formData.status,
+      startDate: formData.startDate.trim(),
+      endDate: formData.endDate.trim(),
+    };
+
+    const validationError = getPolicyValidationError(payload);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     try {
       if (modalMode === 'add') {
-        await axios.post(`${apiBase}/policies`, formData);
+        await axios.post(`${apiBase}/policies`, payload);
       } else {
-        await axios.patch(`${apiBase}/policies/${selectedPolicyId}`, formData);
+        await axios.patch(`${apiBase}/policies/${selectedPolicyId}`, payload);
       }
       setShowPolicyModal(false);
+      setError('');
       onRefresh();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save policy');
@@ -80,12 +140,13 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
   };
 
   const handleDeletePolicy = async (id, name) => {
+    setActionError('');
     if (window.confirm(`Delete policy for "${name}"? All claims will be deleted.`)) {
       try {
         await axios.delete(`${apiBase}/policies/${id}`);
         onRefresh();
       } catch (err) {
-        alert('Failed to delete policy');
+        setActionError(err.response?.data?.error || 'Failed to delete policy');
       }
     }
   };
@@ -101,6 +162,14 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
           + Add Policy
         </button>
       </div>
+
+      {actionError && <div className="alert alert-error" data-testid="policy-action-error">{actionError}</div>}
+
+      {policies.length === 0 && (
+        <div className="section" data-testid="dashboard-empty-state">
+          <p className="empty">No policies yet. Add your first policy to start tracking coverage and claims.</p>
+        </div>
+      )}
 
       {selectedPolicy && (
         <>

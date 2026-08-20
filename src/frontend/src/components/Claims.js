@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/Claims.css';
 
@@ -11,11 +11,35 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
     description: '',
   });
   const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const filteredClaims = filterPolicyId
     ? claims.filter(c => c.policyId === filterPolicyId)
     : claims;
+
+  useEffect(() => {
+    if (policies.length === 0) {
+      if (showForm) {
+        setShowForm(false);
+      }
+      setFormData(prev => ({
+        ...prev,
+        policy_id: '',
+      }));
+      return;
+    }
+
+    setFormData(prev => {
+      if (policies.some(p => p.id === prev.policy_id)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        policy_id: policies[0].id,
+      };
+    });
+  }, [policies, showForm]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -28,13 +52,18 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
   const handleSubmitClaim = async (e) => {
     e.preventDefault();
     setError('');
+    setActionError('');
 
-    if (!formData.policy_id || !formData.amount || !formData.description) {
+    const amount = Number(formData.amount);
+    const description = formData.description.trim();
+    const policyId = formData.policy_id;
+
+    if (!policyId || !formData.amount || !description) {
       setError('All fields are required');
       return;
     }
 
-    if (parseFloat(formData.amount) <= 0) {
+    if (!Number.isFinite(amount) || amount <= 0) {
       setError('Amount must be greater than 0');
       return;
     }
@@ -42,9 +71,9 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
     try {
       setSubmitting(true);
       const payload = new FormData();
-      payload.append('policy_id', formData.policy_id);
-      payload.append('amount', String(parseFloat(formData.amount)));
-      payload.append('description', formData.description);
+      payload.append('policy_id', policyId);
+      payload.append('amount', String(amount));
+      payload.append('description', description);
 
       await axios.post(`${apiBase}/claims`, payload);
       setShowForm(false);
@@ -53,6 +82,7 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
         amount: '',
         description: '',
       });
+      setError('');
       onRefresh();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to submit claim');
@@ -62,21 +92,23 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
   };
 
   const handleStatusChange = async (claimId, newStatus) => {
+    setActionError('');
     try {
       await axios.patch(`${apiBase}/claims/${claimId}/status`, { status: newStatus });
       onRefresh();
     } catch (err) {
-      alert('Failed to update claim status');
+      setActionError(err.response?.data?.error || 'Failed to update claim status');
     }
   };
 
   const handleDeleteClaim = async (claimId) => {
+    setActionError('');
     if (window.confirm('Delete this claim?')) {
       try {
         await axios.delete(`${apiBase}/claims/${claimId}`);
         onRefresh();
       } catch (err) {
-        alert('Failed to delete claim');
+        setActionError(err.response?.data?.error || 'Failed to delete claim');
       }
     }
   };
@@ -90,12 +122,21 @@ function Claims({ policies, claims, onRefresh, apiBase }) {
         </div>
         <button
           className="btn btn-primary"
+          disabled={policies.length === 0}
           onClick={() => setShowForm(!showForm)}
           data-testid="new-claim-btn"
         >
           {showForm ? '✕ Cancel' : '+ New Claim'}
         </button>
       </div>
+
+      {actionError && <div className="alert alert-error" data-testid="claim-action-error">{actionError}</div>}
+
+      {policies.length === 0 && (
+        <p className="empty" data-testid="claim-no-policy-empty">
+          Add a policy before submitting claims.
+        </p>
+      )}
 
       {showForm && (
         <div className="claim-form-card">

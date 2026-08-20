@@ -57,6 +57,9 @@ function App() {
         <Navigation currentPage={currentPage} setCurrentPage={setCurrentPage} />
         <main className="main-content">
           <div className="error-banner">{error}</div>
+          <button className="btn btn-primary" onClick={fetchData} data-testid="retry-load-btn">
+            Retry
+          </button>
         </main>
       </div>
     );
