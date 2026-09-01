@@ -53,10 +53,10 @@ curl http://localhost:8080/api/claims/health
 
 ### 2. Get Sample Data
 ```bash
-curl http://localhost:8080/api/policies | jq
+curl -u alex:policy123 http://localhost:8080/api/policies | jq
 ```
 
-Should return 3 sample policies.
+Should return the authenticated policyholder's allowed policy data.
 
 ### 3. Open Frontend
 Navigate to **http://localhost:3000** in your browser.

@@ -21,6 +21,18 @@
   padding: 0;
 }
 
+.nav-session {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.nav-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .nav-link {
   background: none;
   border: none;
@@ -40,4 +52,16 @@
   background-color: white;
   color: #1a5490;
   font-weight: 600;
+}
+
+.nav-link-secondary {
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.role-pill {
+  text-transform: capitalize;
+  background-color: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.85rem;
 }

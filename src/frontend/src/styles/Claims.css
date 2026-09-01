@@ -97,6 +97,13 @@
   cursor: pointer;
 }
 
+.status-readonly {
+  display: inline-block;
+  cursor: default;
+  min-width: 110px;
+  text-align: center;
+}
+
 .status-select.status-pending {
   background-color: #fffacd;
 }
