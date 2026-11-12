@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.List;
@@ -101,18 +102,29 @@ public class PolicyController {
     if (principal == null || principal.getName() == null || !isStaff(principal.getName())) {
       return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
+    if (request == null) {
+      return ResponseEntity.badRequest().build();
+    }
     BigDecimal premium = request.getPremiumAmount();
     String currency = request.getCurrency() == null ? "USD" : request.getCurrency().trim();
     String ownerPrincipal = request.getOwnerPrincipal();
-    if (premium == null || premium.signum() < 0 || premium.scale() > 2 || premium.precision() > 12
-        || !"USD".equalsIgnoreCase(currency)
+    if (premium == null || premium.signum() < 0 || !"USD".equalsIgnoreCase(currency)
         || (ownerPrincipal != null && ownerPrincipal.isBlank())) {
+      return ResponseEntity.badRequest().build();
+    }
+    BigDecimal normalizedPremium;
+    try {
+      normalizedPremium = premium.setScale(2, RoundingMode.UNNECESSARY);
+    } catch (ArithmeticException ex) {
+      return ResponseEntity.badRequest().build();
+    }
+    if (normalizedPremium.precision() > 12 || (ownerPrincipal != null && ownerPrincipal.length() > 255)) {
       return ResponseEntity.badRequest().build();
     }
 
     return policyRepository.findById(id)
       .map(existing -> {
-        existing.setPremiumAmount(premium);
+        existing.setPremiumAmount(normalizedPremium);
         existing.setCurrency("USD");
         if (ownerPrincipal != null) {
           existing.setOwnerPrincipal(ownerPrincipal.trim());

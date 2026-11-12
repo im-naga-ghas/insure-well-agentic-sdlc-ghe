@@ -49,7 +49,7 @@ class PaymentServiceTest {
   }
 
   private void stubPolicy() {
-    when(policyRepository.findById("POL-1")).thenReturn(Optional.of(policy));
+    when(policyRepository.findByIdForPaymentLock("POL-1")).thenReturn(Optional.of(policy));
   }
 
   @Test
@@ -94,6 +94,17 @@ class PaymentServiceTest {
     assertThrows(ResponseStatusException.class, () -> paymentService.startCheckout("POL-1", owner));
     policy.setCurrency("USD");
     policy.setPremiumAmount(new BigDecimal("1.001"));
+    assertThrows(ResponseStatusException.class, () -> paymentService.startCheckout("POL-1", owner));
+    verifyNoInteractions(checkoutProvider);
+  }
+
+  @ParameterizedTest
+  @CsvSource({"PENDING", "SUCCEEDED"})
+  void checkoutCannotCreateAnotherSessionForPendingOrPaidPolicy(PaymentStatus status) {
+    stubPolicy();
+    when(paymentRepository.findByPolicyIdOrderByCreatedAtDesc("POL-1"))
+      .thenReturn(java.util.List.of(PolicyPayment.builder().status(status).build()));
+
     assertThrows(ResponseStatusException.class, () -> paymentService.startCheckout("POL-1", owner));
     verifyNoInteractions(checkoutProvider);
   }

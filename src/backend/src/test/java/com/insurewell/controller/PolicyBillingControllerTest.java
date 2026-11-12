@@ -48,7 +48,7 @@ class PolicyBillingControllerTest {
     var response = controller.updateBilling("POL-1", request, (Principal) () -> "staff@example.com");
 
     assertEquals(HttpStatus.OK, response.getStatusCode());
-    assertEquals(BigDecimal.ZERO, policy.getPremiumAmount());
+    assertEquals(new BigDecimal("0.00"), policy.getPremiumAmount());
     assertEquals("holder@example.com", policy.getOwnerPrincipal());
   }
 
@@ -67,5 +67,11 @@ class PolicyBillingControllerTest {
     request.setCurrency("EUR");
     assertEquals(HttpStatus.BAD_REQUEST,
       controller.updateBilling("POL-1", request, (Principal) () -> "staff@example.com").getStatusCode());
+    request.setCurrency("USD");
+    request.setPremiumAmount(new BigDecimal("1.234"));
+    assertEquals(HttpStatus.BAD_REQUEST,
+      controller.updateBilling("POL-1", request, (Principal) () -> "staff@example.com").getStatusCode());
+    assertEquals(HttpStatus.BAD_REQUEST,
+      controller.updateBilling("POL-1", null, (Principal) () -> "staff@example.com").getStatusCode());
   }
 }

@@ -40,7 +40,7 @@ public class PaymentService {
   @Transactional(noRollbackFor = CheckoutProviderException.class)
   public CheckoutResponse startCheckout(String policyId, Principal principal) {
     String principalName = requirePrincipal(principal);
-    Policy policy = policyRepository.findById(policyId)
+    Policy policy = policyRepository.findByIdForPaymentLock(policyId)
       .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
     requireOwner(policy, principalName);
     if (!"active".equalsIgnoreCase(policy.getStatus())) {
@@ -51,6 +51,14 @@ public class PaymentService {
     if (amount == null || amount.signum() <= 0 || amount.scale() > 2
         || !"USD".equalsIgnoreCase(policy.getCurrency())) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Policy does not have a payable USD premium");
+    }
+    boolean paymentAlreadyActive = paymentRepository.findByPolicyIdOrderByCreatedAtDesc(policyId).stream()
+      .findFirst()
+      .map(existing -> existing.getStatus() == PaymentStatus.PENDING
+        || existing.getStatus() == PaymentStatus.SUCCEEDED)
+      .orElse(false);
+    if (paymentAlreadyActive) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "A payment is already pending or confirmed");
     }
 
     String paymentId = UUID.randomUUID().toString();

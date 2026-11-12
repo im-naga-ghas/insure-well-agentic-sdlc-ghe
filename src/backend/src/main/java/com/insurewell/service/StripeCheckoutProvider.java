@@ -6,8 +6,10 @@ import com.stripe.net.RequestOptions;
 import com.stripe.param.checkout.SessionCreateParams;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriUtils;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 
 @Component
 public class StripeCheckoutProvider implements CheckoutProvider {
@@ -36,9 +38,11 @@ public class StripeCheckoutProvider implements CheckoutProvider {
 
     SessionCreateParams params = SessionCreateParams.builder()
       .setMode(SessionCreateParams.Mode.PAYMENT)
-      .setSuccessUrl(frontendBaseUrl + "/?payment=success&policyId=" + policyId
+      .setSuccessUrl(frontendBaseUrl + "/?payment=success&policyId="
+        + UriUtils.encodeQueryParam(policyId, StandardCharsets.UTF_8)
         + "&session_id={CHECKOUT_SESSION_ID}")
-      .setCancelUrl(frontendBaseUrl + "/?payment=cancelled&policyId=" + policyId)
+      .setCancelUrl(frontendBaseUrl + "/?payment=cancelled&policyId="
+        + UriUtils.encodeQueryParam(policyId, StandardCharsets.UTF_8))
       .putMetadata("paymentId", paymentId)
       .putMetadata("policyId", policyId)
       .addLineItem(SessionCreateParams.LineItem.builder()

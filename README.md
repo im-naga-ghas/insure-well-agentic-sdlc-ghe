@@ -9,6 +9,7 @@ A lightweight health insurance management system built with a **React** frontend
 - **Policy Dashboard** — view policy details (ID, plan name, coverage amount, status, dates) with per-policy stats and recent claims
 - **Multi-policy support** — clickable tabs to switch between policies without a page reload
 - **Claims Module** — submit claims (amount, description, optional file upload), filter by policy, and track status (Pending / Approved / Rejected)
+- **One-time premium payments** — pay an active policy premium through Stripe-hosted Checkout (USD, test mode)
 - **REST API** — JSON endpoints for policy and claim operations
 - **Seeded sample data** — H2-backed backend starts with sample policies and claims for local development
 

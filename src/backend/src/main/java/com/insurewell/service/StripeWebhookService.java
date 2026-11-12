@@ -21,7 +21,7 @@ public class StripeWebhookService {
   }
 
   public void handle(String payload, String signature) throws SignatureVerificationException {
-    if (webhookSecret == null || webhookSecret.isBlank()) {
+    if (webhookSecret == null || webhookSecret.isBlank() || signature == null || signature.isBlank()) {
       throw new SignatureVerificationException("Webhook secret is not configured", signature);
     }
     Event event = Webhook.constructEvent(payload, signature, webhookSecret);
@@ -32,7 +32,7 @@ public class StripeWebhookService {
 
     StripeObject object = event.getDataObjectDeserializer().getObject().orElse(null);
     if (!(object instanceof Session session)) {
-      return;
+      throw new IllegalArgumentException("Invalid Checkout Session event");
     }
     paymentService.processStripeEvent(event.getId(), type, session.getId(),
       session.getPaymentIntent(), session.getPaymentStatus());

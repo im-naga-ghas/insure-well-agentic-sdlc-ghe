@@ -57,7 +57,11 @@ src/
 | POST   | `/api/policies`              | Create a policy              |
 | GET    | `/api/policies/{id}`         | Get a single policy          |
 | PATCH  | `/api/policies/{id}`         | Update a policy              |
-| DELETE | `/api/policies/{id}`         | Delete a policy              |
+| PUT    | `/api/policies/{id}/billing`  | Staff: set USD premium and policyholder identity |
+| DELETE | `/api/policies/{id}`          | Delete a policy               |
+| POST   | `/api/policies/{id}/payments/checkout` | Create one-time Stripe Checkout |
+| GET    | `/api/policies/{id}/payments/latest`   | Get latest payment status |
+| POST   | `/api/webhooks/stripe`        | Verify and process Stripe events |
 | GET    | `/api/claims`                | List claims (filter by policy) |
 | POST   | `/api/claims`                | Submit a claim               |
 | PATCH  | `/api/claims/{id}/status`    | Update claim status          |
@@ -154,7 +158,11 @@ The frontend will open on **http://localhost:3000** and automatically connect to
 | `POST`  | `/api/policies`               | Create a policy                    |
 | `GET`   | `/api/policies/{id}`          | Get a single policy                |
 | `PATCH` | `/api/policies/{id}`          | Update a policy                    |
-| `DELETE`| `/api/policies/{id}`          | Delete a policy                    |
+| `PUT`   | `/api/policies/{id}/billing`  | Set a policy's USD premium (configured staff only) |
+| `DELETE`| `/api/policies/{id}`          | Delete a policy                |
+| `POST`  | `/api/policies/{id}/payments/checkout` | Start hosted one-time checkout; no amount in request |
+| `GET`   | `/api/policies/{id}/payments/latest`   | Read the caller-owned policy's latest payment |
+| `POST`  | `/api/webhooks/stripe`        | Process signed Stripe webhook events |
 | `GET`   | `/api/claims`                 | List all claims                    |
 | `GET`   | `/api/claims?policy_id=<id>`  | Filter claims by policy            |
 | `POST`  | `/api/claims`                 | Submit a new claim (multipart)     |
@@ -182,6 +190,27 @@ The frontend will open on **http://localhost:3000** and automatically connect to
 
 Valid values: `Pending`, `Approved`, `Rejected`.
 
+### Configure Stripe test mode
+
+Create a Stripe test-mode secret key and configure the backend through environment variables. Never commit or expose these values to the frontend:
+
+```bash
+export STRIPE_SECRET_KEY=sk_test_...
+export STRIPE_WEBHOOK_SECRET=whsec_...
+export INSUREWELL_PAYMENT_STAFF_PRINCIPALS=staff@example.com
+export INSUREWELL_FRONTEND_URL=http://localhost:3000
+```
+
+Set `STRIPE_WEBHOOK_SECRET` to the signing secret printed by Stripe CLI:
+
+```bash
+stripe listen --forward-to localhost:8080/api/webhooks/stripe
+```
+
+Use Stripe test cards on Stripe-hosted Checkout only. InsureWell does not accept or store card numbers or security codes. A successful browser redirect only reports that checkout returned; the UI reports payment as confirmed only after a valid signed Stripe event is processed.
+
+The staff allowlist is a comma-separated list of authenticated principal names. Billing updates can set a non-negative USD premium and optionally assign the policyholder's authenticated principal name. Checkout and payment-status requests require an authenticated principal matching that policy identity and an active policy. Configure the Entra ID authentication prerequisite before enabling payments; allow the Stripe webhook route to be called without a bearer token, since its Stripe signature is verified by the endpoint.
+
 ## Data Model
 
 ### Policy
@@ -191,6 +220,8 @@ Valid values: `Pending`, `Approved`, `Rejected`.
   "holderName": "Alex Johnson",
   "planName": "InsureWell Premium Health Plan",
   "coverageAmount": 250000,
+  "premiumAmount": 99.99,
+  "currency": "USD",
   "status": "active",
   "startDate": "2024-01-01",
   "endDate": "2026-12-31",
