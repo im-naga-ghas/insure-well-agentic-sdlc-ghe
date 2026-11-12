@@ -105,7 +105,8 @@ public class PolicyController {
     String currency = request.getCurrency() == null ? "USD" : request.getCurrency().trim();
     String ownerPrincipal = request.getOwnerPrincipal();
     if (premium == null || premium.signum() < 0 || premium.scale() > 2 || premium.precision() > 12
-        || !"USD".equalsIgnoreCase(currency) || ownerPrincipal == null || ownerPrincipal.isBlank()) {
+        || !"USD".equalsIgnoreCase(currency)
+        || (ownerPrincipal != null && ownerPrincipal.isBlank())) {
       return ResponseEntity.badRequest().build();
     }
 
@@ -113,7 +114,9 @@ public class PolicyController {
       .map(existing -> {
         existing.setPremiumAmount(premium);
         existing.setCurrency("USD");
-        existing.setOwnerPrincipal(ownerPrincipal.trim());
+        if (ownerPrincipal != null) {
+          existing.setOwnerPrincipal(ownerPrincipal.trim());
+        }
         return ResponseEntity.ok(toDTO(policyRepository.save(existing)));
       })
       .orElse(ResponseEntity.notFound().build());
