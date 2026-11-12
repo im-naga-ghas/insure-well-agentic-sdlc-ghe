@@ -106,6 +106,26 @@
   gap: 2rem;
 }
 
+.payment-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #ddd;
+}
+
+.payment-panel > div:first-child {
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-status {
+  font-weight: 600;
+}
+
 .detail {
   display: flex;
   flex-direction: column;

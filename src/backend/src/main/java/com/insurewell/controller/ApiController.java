@@ -22,7 +22,8 @@ public class ApiController {
       "endpoints", Map.of(
         "health", "/api/health",
         "policies", "/api/policies",
-        "claims", "/api/claims"
+        "claims", "/api/claims",
+        "stripeWebhook", "/api/webhooks/stripe"
       )
     ));
   }

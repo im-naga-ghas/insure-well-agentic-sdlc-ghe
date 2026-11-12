@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import '../styles/Dashboard.css';
 
 function Dashboard({ policies, claims, onRefresh, apiBase }) {
-  const [selectedPolicyId, setSelectedPolicyId] = useState(policies[0]?.id || null);
+  const [selectedPolicyId, setSelectedPolicyId] = useState(
+    new URLSearchParams(window.location.search).get('policyId') || policies[0]?.id || null
+  );
   const [showPolicyModal, setShowPolicyModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
+  const [billingData, setBillingData] = useState({ premiumAmount: '', ownerPrincipal: '' });
   const [formData, setFormData] = useState({
     holderName: '',
     planName: '',
@@ -15,6 +18,19 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
     endDate: '',
   });
   const [error, setError] = useState('');
+  const [billingError, setBillingError] = useState('');
+  const [payment, setPayment] = useState(null);
+  const [paymentError, setPaymentError] = useState('');
+  const [checkoutMessage] = useState(() => {
+    const result = new URLSearchParams(window.location.search).get('payment');
+    if (result === 'success') {
+      return 'Checkout returned. Payment will be confirmed after Stripe verifies it.';
+    }
+    if (result === 'cancelled') {
+      return 'Checkout was cancelled. No payment has been confirmed.';
+    }
+    return '';
+  });
 
   const selectedPolicy = policies.find(p => p.id === selectedPolicyId);
   const policyClaims = claims.filter(c => c.policyId === selectedPolicyId);
@@ -22,8 +38,33 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
   const approvedCount = policyClaims.filter(c => c.status === 'Approved').length;
   const totalClaimed = policyClaims.reduce((sum, c) => sum + c.amount, 0);
 
+  useEffect(() => {
+    if (!selectedPolicyId) {
+      setPayment(null);
+      return undefined;
+    }
+    let active = true;
+    axios.get(`${apiBase}/policies/${selectedPolicyId}/payments/latest`)
+      .then(response => {
+        if (active) {
+          setPayment(response.data);
+          setPaymentError('');
+        }
+      })
+      .catch(err => {
+        if (!active) {
+          return;
+        }
+        setPayment(null);
+        setPaymentError(err.response?.status === 404 ? '' : 'Unable to load payment status.');
+      });
+    return () => { active = false; };
+  }, [apiBase, selectedPolicyId]);
+
   const openAddModal = () => {
     setModalMode('add');
+    setBillingData({ premiumAmount: '', ownerPrincipal: '' });
+    setBillingError('');
     setFormData({
       holderName: '',
       planName: '',
@@ -38,6 +79,8 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
 
   const openEditModal = (policy) => {
     setModalMode('edit');
+    setBillingData({ premiumAmount: policy.premiumAmount ?? '', ownerPrincipal: '' });
+    setBillingError('');
     setFormData({
       holderName: policy.holderName,
       planName: policy.planName,
@@ -76,6 +119,43 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
       onRefresh();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to save policy');
+    }
+  };
+
+  const handleBillingInputChange = (e) => {
+    const { name, value } = e.target;
+    setBillingData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveBilling = async (e) => {
+    e.preventDefault();
+    if (billingData.premiumAmount === '' || Number(billingData.premiumAmount) < 0
+        || !Number.isFinite(Number(billingData.premiumAmount))) {
+      setBillingError('Enter a non-negative USD premium.');
+      return;
+    }
+    try {
+      await axios.put(`${apiBase}/policies/${selectedPolicyId}/billing`, {
+        premiumAmount: billingData.premiumAmount,
+        currency: 'USD',
+        ownerPrincipal: billingData.ownerPrincipal.trim() || null,
+      });
+      setBillingError('');
+      onRefresh();
+    } catch (err) {
+      setBillingError(err.response?.status === 403
+        ? 'Only configured staff can update billing details.'
+        : err.response?.data?.message || 'Failed to update billing details.');
+    }
+  };
+
+  const handleStartCheckout = async () => {
+    setPaymentError('');
+    try {
+      const response = await axios.post(`${apiBase}/policies/${selectedPolicyId}/payments/checkout`);
+      window.location.assign(response.data.checkoutUrl);
+    } catch (err) {
+      setPaymentError(err.response?.data?.message || 'Unable to start checkout. Please try again.');
     }
   };
 
@@ -161,6 +241,36 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
                 <span className="label">End Date</span>
                 <span className="value">{selectedPolicy.endDate}</span>
               </div>
+            </div>
+            <div className="payment-panel" data-testid="policy-payment">
+              <div>
+                <span className="label">Premium</span>
+                <span className="value" data-testid="policy-premium">
+                  {selectedPolicy.premiumAmount == null
+                    ? 'Not configured'
+                    : `${selectedPolicy.currency || 'USD'} ${Number(selectedPolicy.premiumAmount).toFixed(2)}`}
+                </span>
+              </div>
+              <div className="payment-status" data-testid="payment-status">
+                {payment?.status === 'SUCCEEDED' && 'Payment confirmed'}
+                {payment?.status === 'PENDING' && 'Payment pending confirmation'}
+                {payment?.status === 'FAILED' && 'Payment failed'}
+                {payment?.status === 'CANCELLED' && 'Checkout expired or cancelled'}
+                {!payment && !paymentError && 'No payment recorded'}
+                {paymentError && paymentError}
+              </div>
+              {checkoutMessage && <p role="status" data-testid="checkout-message">{checkoutMessage}</p>}
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleStartCheckout}
+                disabled={selectedPolicy.status !== 'active'
+                  || !selectedPolicy.premiumAmount || Number(selectedPolicy.premiumAmount) <= 0}
+                data-testid="pay-premium-btn"
+              >
+                Pay premium
+              </button>
+              {paymentError && <p role="alert" data-testid="checkout-error">{paymentError}</p>}
             </div>
           </div>
 
@@ -303,6 +413,41 @@ function Dashboard({ policies, claims, onRefresh, apiBase }) {
                 </button>
               </div>
             </form>
+            {modalMode === 'edit' && (
+              <form onSubmit={handleSaveBilling} data-testid="billing-form">
+                <h3>Staff billing settings</h3>
+                <p>Only configured staff can save the premium and policyholder identity.</p>
+                {billingError && <div className="alert alert-error" data-testid="billing-form-error">{billingError}</div>}
+                <div className="form-group">
+                  <label htmlFor="premium-amount">Premium (USD)</label>
+                  <input
+                    id="premium-amount"
+                    type="number"
+                    name="premiumAmount"
+                    min="0"
+                    step="0.01"
+                    value={billingData.premiumAmount}
+                    onChange={handleBillingInputChange}
+                    required
+                    data-testid="input-premium-amount"
+                  />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="owner-principal">Policyholder sign-in identity (optional)</label>
+                  <input
+                    id="owner-principal"
+                    type="text"
+                    name="ownerPrincipal"
+                    value={billingData.ownerPrincipal}
+                    onChange={handleBillingInputChange}
+                    data-testid="input-owner-principal"
+                  />
+                </div>
+                <button type="submit" className="btn btn-primary" data-testid="save-billing-btn">
+                  Save billing settings
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

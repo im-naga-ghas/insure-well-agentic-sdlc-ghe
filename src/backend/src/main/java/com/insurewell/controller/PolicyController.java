@@ -1,15 +1,23 @@
 package com.insurewell.controller;
 
 import com.insurewell.dto.PolicyDTO;
+import com.insurewell.dto.PolicyBillingRequest;
 import com.insurewell.model.Policy;
 import com.insurewell.repository.PolicyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.security.Principal;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -25,12 +33,17 @@ public class PolicyController {
   @Autowired
   private PolicyRepository policyRepository;
 
+  @Value("${insurewell.payment.staff-principals:}")
+  private String staffPrincipals;
+
   private PolicyDTO toDTO(Policy policy) {
     return PolicyDTO.builder()
       .id(policy.getId())
       .holderName(policy.getHolderName())
       .planName(policy.getPlanName())
       .coverageAmount(policy.getCoverageAmount())
+      .premiumAmount(policy.getPremiumAmount())
+      .currency(policy.getCurrency())
       .status(policy.getStatus())
       .startDate(policy.getStartDate())
       .endDate(policy.getEndDate())
@@ -68,7 +81,7 @@ public class PolicyController {
   }
 
   @PostMapping
-  public ResponseEntity<PolicyDTO> createPolicy(@RequestBody PolicyDTO policyDTO) {
+  public ResponseEntity<PolicyDTO> createPolicy(@RequestBody PolicyDTO policyDTO, Principal principal) {
     if (policyDTO.getHolderName() == null || policyDTO.getHolderName().trim().isEmpty()
         || policyDTO.getPlanName() == null || policyDTO.getPlanName().trim().isEmpty()
         || policyDTO.getCoverageAmount() == null || policyDTO.getCoverageAmount() <= 0) {
@@ -76,8 +89,58 @@ public class PolicyController {
     }
 
     Policy policy = toEntity(policyDTO);
+    if (principal != null) {
+      policy.setOwnerPrincipal(principal.getName());
+    }
     Policy saved = policyRepository.save(policy);
     return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(saved));
+  }
+
+  @PutMapping("/{id}/billing")
+  public ResponseEntity<PolicyDTO> updateBilling(
+      @PathVariable String id, @RequestBody PolicyBillingRequest request, Principal principal) {
+    if (principal == null || principal.getName() == null || !isStaff(principal.getName())) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+    }
+    if (request == null) {
+      return ResponseEntity.badRequest().build();
+    }
+    BigDecimal premium = request.getPremiumAmount();
+    String currency = request.getCurrency() == null ? "USD" : request.getCurrency().trim();
+    String ownerPrincipal = request.getOwnerPrincipal();
+    if (premium == null || premium.signum() < 0 || !"USD".equalsIgnoreCase(currency)
+        || (ownerPrincipal != null && ownerPrincipal.isBlank())) {
+      return ResponseEntity.badRequest().build();
+    }
+    BigDecimal normalizedPremium;
+    try {
+      normalizedPremium = premium.setScale(2, RoundingMode.UNNECESSARY);
+    } catch (ArithmeticException ex) {
+      return ResponseEntity.badRequest().build();
+    }
+    if (normalizedPremium.precision() > 12 || (ownerPrincipal != null && ownerPrincipal.length() > 255)) {
+      return ResponseEntity.badRequest().build();
+    }
+
+    return policyRepository.findById(id)
+      .map(existing -> {
+        existing.setPremiumAmount(normalizedPremium);
+        existing.setCurrency("USD");
+        if (ownerPrincipal != null) {
+          existing.setOwnerPrincipal(ownerPrincipal.trim());
+        }
+        return ResponseEntity.ok(toDTO(policyRepository.save(existing)));
+      })
+      .orElse(ResponseEntity.notFound().build());
+  }
+
+  private boolean isStaff(String principalName) {
+    Set<String> allowedPrincipals = Arrays.stream(staffPrincipals.split(","))
+      .map(String::trim)
+      .filter(value -> !value.isEmpty())
+      .map(value -> value.toLowerCase(Locale.ROOT))
+      .collect(Collectors.toSet());
+    return allowedPrincipals.contains(principalName.trim().toLowerCase(Locale.ROOT));
   }
 
   @PatchMapping("/{id}")
